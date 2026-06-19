@@ -66,11 +66,20 @@
 			alignment = <0x08000000>; /* 128 MiB-aligned base */
 		};
 
-		/* Reusable CMA for camera/IPU/VPU capture buffers (default area). */
+		/*
+		 * Reusable CMA for camera/IPU/VPU capture buffers (default area).
+		 * 64 MiB, not 128: the cnc pool above is 128 MiB and must be
+		 * 128 MiB-aligned, so it sits at 0x20000000 and splits the 512 MiB
+		 * of RAM in two, leaving no second contiguous 128 MiB hole — a
+		 * 128 MiB request here fails placement and the kernel silently
+		 * falls back to its 64 MiB default. The cnc ring has its own
+		 * dedicated pool, so this only backs camera/IPU/VPU buffers
+		 * (a 2592x1944 SBGGR8 frame is ~5 MiB; 64 MiB is ample).
+		 */
 		linux,cma {
 			compatible = "shared-dma-pool";
 			reusable;
-			size = <0x08000000>;      /* 128 MiB */
+			size = <0x04000000>;      /* 64 MiB */
 			linux,cma-default;
 		};
 	};
