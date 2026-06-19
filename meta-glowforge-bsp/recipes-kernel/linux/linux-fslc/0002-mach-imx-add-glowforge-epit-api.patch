@@ -1,0 +1,32 @@
+arm: mach-imx: add Glowforge EPIT API platform driver
+
+ForgeFIRM motion-path forward-port (Scarthgap migration #2). Builds
+epit_api.c (exposes EPIT1/EPIT2 to glowforge.ko) under a new
+CONFIG_MXC_EPIT_API. The 6.12 clk-imx6q.c / imx6qdl-clock.h already
+provide the EPIT gate clocks, so only the Kconfig/Makefile hooks are
+needed here (the 4.14 patch also added the clocks).
+
+Upstream-Status: Inappropriate [embedded specific]
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/arch/arm/mach-imx/Kconfig
++++ b/arch/arm/mach-imx/Kconfig
+@@ -21,5 +21,10 @@
+ config MXC_AVIC
+ 	bool
+ 
++config MXC_EPIT_API
++	bool "Expose EPIT1/EPIT2 to kernel modules"
++	help
++	  Low-level API for the i.MX6 EPIT timers (Glowforge cnc step engine).
++
+ config HAVE_IMX_ANATOP
+ 	bool
+--- a/arch/arm/mach-imx/Makefile
++++ b/arch/arm/mach-imx/Makefile
+@@ -14,4 +14,5 @@
+ obj-$(CONFIG_MXC_TZIC) += tzic.o
+ obj-$(CONFIG_MXC_AVIC) += avic.o
++obj-$(CONFIG_MXC_EPIT_API) += epit_api.o
+ 
+ ifeq ($(CONFIG_CPU_IDLE),y)

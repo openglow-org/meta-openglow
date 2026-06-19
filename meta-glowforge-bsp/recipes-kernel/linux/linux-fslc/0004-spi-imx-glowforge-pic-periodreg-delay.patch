@@ -1,0 +1,106 @@
+spi-imx: insert inter-word delay for the Glowforge sensor PIC
+
+ForgeFIRM motion/IO-path forward-port (Scarthgap migration #2). Re-derives the
+factory 4.14 "Add delay to SPI" change against linux-fslc 6.12 spi-imx.c.
+
+The Glowforge sensor PIC is a slow SPI slave: it needs settling time after the
+command word before it can present the response on the next word. Without it the
+controller clocks the response out too early and the driver reads back 0x0000
+("glowforge_pic ... failed to detect device: returned ID 0000, expected 4d53").
+
+The factory provided this with the ECSPI PERIODREG sample-period register, which
+mainline spi-imx never gained (it has no PERIODREG / word_delay support). This
+restores it, sourced from spi_transfer.delay (which the PIC driver already sets),
+and forces fixed per-word bursts when a delay is requested so the wait-states
+land between words instead of inside a combined dynamic burst.
+
+Scoped to MACHINE=glowforge via the linux-fslc bbappend; only ecspi2 (the PIC)
+is used on this board, so the global driver behaviour change is inert elsewhere.
+
+Upstream-Status: Inappropriate [embedded specific]
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/drivers/spi/spi-imx.c
++++ b/drivers/spi/spi-imx.c
+@@ -104,6 +104,12 @@
+ 
+ 	unsigned int bits_per_word;
+ 	unsigned int spi_drctl;
++	/*
++	 * ForgeFIRM: inter-word delay (microseconds) requested by the active
++	 * transfer, programmed into the ECSPI PERIODREG sample-period so slow SPI
++	 * slaves (the Glowforge sensor PIC) get settling time between words.
++	 */
++	unsigned int word_delay_us;
+ 
+ 	unsigned int count, remainder;
+ 	void (*tx)(struct spi_imx_data *spi_imx);
+@@ -301,6 +307,15 @@
+ #define MX51_ECSPI_STAT		0x18
+ #define MX51_ECSPI_STAT_RR		(1 <<  3)
+ 
++/*
++ * ForgeFIRM: ECSPI sample-period register. SAMPLE_PERIOD (bits 14:0) inserts
++ * that many wait-state clocks between consecutive bursts; CSRC (bit 15) selects
++ * the reference clock (0 = SPI clock, which is what we want). Used to give the
++ * Glowforge sensor PIC settling time between words.
++ */
++#define MX51_ECSPI_PERIOD	0x1c
++#define MX51_ECSPI_PERIOD_SAMPLE_PERIOD(p)	((p) & 0x7fff)
++
+ #define MX51_ECSPI_TESTREG	0x20
+ #define MX51_ECSPI_TESTREG_LBC	BIT(31)
+ 
+@@ -670,6 +685,22 @@
+ 	ctrl |= mx51_ecspi_clkdiv(spi_imx, spi_imx->spi_bus_clk, &clk);
+ 	spi_imx->spi_bus_clk = clk;
+ 
++	/*
++	 * ForgeFIRM: program inter-word wait-states from the delay requested by
++	 * the current transfer (forward-port of the factory 4.14 "Add delay to
++	 * SPI" patch needed by the sensor PIC). period is in SPI-clock cycles;
++	 * 0 disables it. Computed clk/1000 first to avoid 32-bit overflow.
++	 */
++	{
++		u32 period = 0;
++
++		if (spi_imx->word_delay_us)
++			period = MX51_ECSPI_PERIOD_SAMPLE_PERIOD(
++				(spi_imx->spi_bus_clk / 1000) *
++				spi_imx->word_delay_us / 1000);
++		writel(period, spi_imx->base + MX51_ECSPI_PERIOD);
++	}
++
+ 	mx51_configure_cpha(spi_imx, spi);
+ 
+ 	/*
+@@ -1262,12 +1293,28 @@
+ 	spi_imx->count = t->len;
+ 
+ 	/*
++	 * ForgeFIRM: capture the inter-word delay requested by this transfer
++	 * (the sensor PIC sets spi_transfer.delay) for the PERIODREG sample-period
++	 * programmed in prepare_transfer. spi_delay_to_ns() returns <0 for units
++	 * that need a not-yet-known speed; treat those as "no delay".
++	 */
++	{
++		s32 ns = spi_delay_to_ns(&t->delay, t);
++
++		spi_imx->word_delay_us = (ns > 0) ? DIV_ROUND_UP(ns, 1000) : 0;
++	}
++
++	/*
+ 	 * Initialize the functions for transfer. To transfer non byte-aligned
+ 	 * words, we have to use multiple word-size bursts, we can't use
+ 	 * dynamic_burst in that case.
++	 *
++	 * ForgeFIRM: also fall back to fixed per-word bursts when an inter-word
++	 * delay is requested, so the PERIODREG wait-states actually land between
++	 * words rather than being swallowed inside one combined dynamic burst.
+ 	 */
+ 	if (spi_imx->devtype_data->dynamic_burst && !spi_imx->target_mode &&
+-	    !(spi->mode & SPI_CS_WORD) &&
++	    !(spi->mode & SPI_CS_WORD) && !spi_imx->word_delay_us &&
+ 	    (spi_imx->bits_per_word == 8 ||
+ 	    spi_imx->bits_per_word == 16 ||
+ 	    spi_imx->bits_per_word == 32)) {
