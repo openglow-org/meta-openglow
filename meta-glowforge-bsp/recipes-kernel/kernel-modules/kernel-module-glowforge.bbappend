@@ -8,3 +8,7 @@
 inherit externalsrc
 EXTERNALSRC = "${TOPDIR}/../../kernel-module-glowforge"
 EXTERNALSRC_BUILD = "${EXTERNALSRC}"
+
+# cnc.c #includes src/sdma.asm.h, which the Makefile assembles from asm/sdma.asm
+# via tools/sdma_asm.pl (Perl) during do_compile, so perl must be on PATH.
+DEPENDS += "perl-native"
