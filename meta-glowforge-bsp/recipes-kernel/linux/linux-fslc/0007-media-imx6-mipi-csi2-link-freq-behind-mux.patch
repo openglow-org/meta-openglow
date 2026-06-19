@@ -1,0 +1,62 @@
+media: imx6-mipi-csi2: find LINK_FREQ on the sensor behind a mux
+
+ForgeFIRM camera bring-up (Scarthgap migration #2, milestone #5). csi2_dphy_init
+reads V4L2_CID_LINK_FREQ from csi2->src_sd to pick the D-PHY hsfreqrange, but in
+the Glowforge dual-camera graph a video-mux sits between the sensor and this
+receiver, so src_sd (the mux) has no such control. It then falls back to the
+849 Mbps default and mis-programs the D-PHY for the OV5648's ~420 Mbps output,
+which manifests downstream as ipu1_csi0 EOF timeouts. Walk up the enabled links
+to the sensor that publishes the control.
+
+Upstream-Status: Pending
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/drivers/staging/media/imx/imx6-mipi-csi2.c
++++ b/drivers/staging/media/imx/imx6-mipi-csi2.c
+@@ -200,14 +200,44 @@
+ 	return -EINVAL;
+ }
+ 
++/*
++ * ForgeFIRM: V4L2_CID_LINK_FREQ lives on the sensor, but in the Glowforge graph
++ * a video-mux sits between the sensor and this receiver, so csi2->src_sd (the
++ * mux) has no such control. Without it dphy_init falls back to the 849 Mbps
++ * default and mis-times the D-PHY for the OV5648's ~420 Mbps output, which shows
++ * up downstream as IPU-CSI EOF timeouts. Walk up the enabled links to the
++ * sensor that actually publishes the control.
++ */
++static struct v4l2_ctrl *csi2_find_link_freq(struct csi2_dev *csi2)
++{
++	struct v4l2_subdev *sd = csi2->src_sd;
++
++	while (sd) {
++		struct v4l2_ctrl *ctrl =
++			v4l2_ctrl_find(sd->ctrl_handler, V4L2_CID_LINK_FREQ);
++		struct media_pad *pad;
++
++		if (ctrl)
++			return ctrl;
++
++		pad = media_entity_remote_pad_unique(&sd->entity,
++						     MEDIA_PAD_FL_SOURCE);
++		if (IS_ERR_OR_NULL(pad) ||
++		    !is_media_entity_v4l2_subdev(pad->entity))
++			break;
++		sd = media_entity_to_v4l2_subdev(pad->entity);
++	}
++
++	return NULL;
++}
++
+ static int csi2_dphy_init(struct csi2_dev *csi2)
+ {
+ 	struct v4l2_ctrl *ctrl;
+ 	u32 mbps_per_lane;
+ 	int sel;
+ 
+-	ctrl = v4l2_ctrl_find(csi2->src_sd->ctrl_handler,
+-			      V4L2_CID_LINK_FREQ);
++	ctrl = csi2_find_link_freq(csi2);
+ 	if (!ctrl)
+ 		mbps_per_lane = CSI2_DEFAULT_MAX_MBPS;
+ 	else

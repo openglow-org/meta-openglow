@@ -1,0 +1,44 @@
+media: ov5648: implement get_mbus_config
+
+ForgeFIRM camera bring-up (Scarthgap migration #2, milestone #5). The imx6
+IPU-CSI determines whether its input is MIPI CSI-2 by calling get_mbus_config up
+the pipeline to the sensor (through the video-mux). ov5648 did not implement it,
+so the CSI could not configure its CSI-2 input and link-validate failed. Report
+the bus type and lane count from the already-parsed DT endpoint.
+
+Upstream-Status: Pending
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/drivers/media/i2c/ov5648.c
++++ b/drivers/media/i2c/ov5648.c
+@@ -2365,6 +2365,22 @@
+ 	return 0;
+ }
+ 
++/*
++ * ForgeFIRM: report the CSI-2 bus config so the imx6 IPU-CSI can determine its
++ * input is MIPI CSI-2 (it walks get_mbus_config up through the video-mux to the
++ * sensor and hard-fails without it). Values come from the parsed DT endpoint.
++ */
++static int ov5648_get_mbus_config(struct v4l2_subdev *subdev, unsigned int pad,
++				  struct v4l2_mbus_config *config)
++{
++	struct ov5648_sensor *sensor = ov5648_subdev_sensor(subdev);
++
++	config->type = V4L2_MBUS_CSI2_DPHY;
++	config->bus.mipi_csi2 = sensor->endpoint.bus.mipi_csi2;
++
++	return 0;
++}
++
+ static const struct v4l2_subdev_pad_ops ov5648_subdev_pad_ops = {
+ 	.enum_mbus_code		= ov5648_enum_mbus_code,
+ 	.get_fmt		= ov5648_get_fmt,
+@@ -2373,6 +2389,7 @@
+ 	.set_frame_interval	= ov5648_get_frame_interval,
+ 	.enum_frame_size	= ov5648_enum_frame_size,
+ 	.enum_frame_interval	= ov5648_enum_frame_interval,
++	.get_mbus_config	= ov5648_get_mbus_config,
+ };
+ 
+ static const struct v4l2_subdev_ops ov5648_subdev_ops = {

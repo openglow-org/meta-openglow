@@ -1,0 +1,57 @@
+media: video-mux: forward get_mbus_config to the active sensor
+
+ForgeFIRM camera bring-up (Scarthgap migration #2, milestone #5). In the
+Glowforge dual-camera graph the two OV5648 sensors are muxed at the CSI-2 level
+by this video-mux ahead of the single imx6-mipi-csi2 receiver. The imx6 IPU-CSI
+(imx-media-csi.c:csi_get_upstream_mbus_config) walks up to the entity feeding the
+CSI-2 receiver -- here the video-mux -- and hard-fails link-validate with
+-ENOIOCTLCMD if that entity has no get_mbus_config. Forward the query to whichever
+sensor is currently selected (mirrors how video_mux_s_stream finds the upstream).
+
+Upstream-Status: Pending
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/drivers/media/platform/video-mux.c
++++ b/drivers/media/platform/video-mux.c
+@@ -301,9 +301,41 @@
+ 	return 0;
+ }
+ 
++/*
++ * ForgeFIRM: forward get_mbus_config to the active upstream sensor. The imx6
++ * IPU-CSI (imx-media-csi.c) walks up to the entity feeding the CSI-2 receiver —
++ * which in the Glowforge dual-camera graph is this mux — and hard-fails
++ * link-validate if it cannot read the bus config. Pass the query through to
++ * whichever sensor is currently selected.
++ */
++static int video_mux_get_mbus_config(struct v4l2_subdev *sd, unsigned int pad,
++				     struct v4l2_mbus_config *cfg)
++{
++	struct video_mux *vmux = v4l2_subdev_to_video_mux(sd);
++	struct media_pad *upstream_pad;
++	struct v4l2_subdev *upstream_sd;
++
++	mutex_lock(&vmux->lock);
++	if (vmux->active < 0) {
++		mutex_unlock(&vmux->lock);
++		return -EINVAL;
++	}
++	upstream_pad = media_pad_remote_pad_first(&sd->entity.pads[vmux->active]);
++	mutex_unlock(&vmux->lock);
++
++	if (!upstream_pad || !is_media_entity_v4l2_subdev(upstream_pad->entity))
++		return -ENODEV;
++
++	upstream_sd = media_entity_to_v4l2_subdev(upstream_pad->entity);
++
++	return v4l2_subdev_call(upstream_sd, pad, get_mbus_config,
++				upstream_pad->index, cfg);
++}
++
+ static const struct v4l2_subdev_pad_ops video_mux_pad_ops = {
+ 	.get_fmt = v4l2_subdev_get_fmt,
+ 	.set_fmt = video_mux_set_format,
++	.get_mbus_config = video_mux_get_mbus_config,
+ };
+ 
+ static const struct v4l2_subdev_ops video_mux_subdev_ops = {
