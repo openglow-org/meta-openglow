@@ -41,23 +41,36 @@
 	};
 
 	/*
-	 * CMA pool for the glowforge,cnc SDMA pulse ring. cnc_buffer.c allocates a
-	 * 128 MiB coherent buffer via dma_alloc_coherent(); the FSLC defconfig's
-	 * default CMA pool is far too small (probe fails -ENOMEM). The factory 4.14
-	 * kernel carried a large CONFIG_CMA_SIZE_MBYTES in its defconfig (same
-	 * bootargs, no cma=) — reserve it explicitly here so it travels with the DTB.
-	 * 256 MiB = 128 MiB ring + IPU/camera headroom. NOTE: confirm total board
-	 * RAM; on a 512 MB SOM this leaves 256 MB for the system (matches factory).
+	 * Memory reserved for DMA. cnc_buffer.c allocates a 128 MiB coherent buffer
+	 * for the SDMA pulse ring; the camera/IPU/VPU need contiguous capture
+	 * buffers. Total here is 256 MiB on a 512 MB SOM (matches the factory split).
 	 */
 	reserved-memory {
 		#address-cells = <1>;
 		#size-cells = <1>;
 		ranges;
 
+		/*
+		 * Dedicated, EXCLUSIVE 128 MiB coherent pool for the cnc SDMA pulse
+		 * ring (glowforge,cnc references it via memory-region below; cnc.c calls
+		 * of_reserved_mem_device_init()). Pulling the ring from the shared CMA
+		 * fails once boot has fragmented it (cma_alloc -EBUSY) because the
+		 * out-of-tree module probes late; a non-reusable shared-dma-pool (which
+		 * must be no-map) is never touched by movable allocations and, 128 MiB-
+		 * aligned, satisfies dma_alloc_coherent() deterministically.
+		 */
+		cnc_reserved: cnc-pulsebuf {
+			compatible = "shared-dma-pool";
+			no-map;
+			size = <0x08000000>;      /* 128 MiB */
+			alignment = <0x08000000>; /* 128 MiB-aligned base */
+		};
+
+		/* Reusable CMA for camera/IPU/VPU capture buffers (default area). */
 		linux,cma {
 			compatible = "shared-dma-pool";
 			reusable;
-			size = <0x10000000>; /* 256 MiB */
+			size = <0x08000000>;      /* 128 MiB */
 			linux,cma-default;
 		};
 	};
@@ -206,6 +219,7 @@
 		compatible = "glowforge,cnc";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_cnc>;
+		memory-region = <&cnc_reserved>; /* dedicated 128 MiB SDMA pulse ring */
 		latch-reset-gpio   = <&gpio1 7 0>; /* BUTTON_LATCH_RST */
 		z-dir-gpio         = <&gpio2 17 0>;
 		y1-dir-gpio        = <&gpio2 18 0>;
