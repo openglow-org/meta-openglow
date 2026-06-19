@@ -17,7 +17,7 @@ IMAGE_INSTALL = " \
 	i2c-tools \
 	localedef \
 	nano \
-  ntp \
+	ntp \
 	openssh \
 	openssh-sftp \
 	openssh-sftp-server \
@@ -26,7 +26,7 @@ IMAGE_INSTALL = " \
 	python3-gfhardware \
 	python3-gfutilities \
 	u-boot-env \
-	u-boot-fw-utils \
+	libubootenv-bin \
 	watchdog \
 	wpa-supplicant \
 	wlconf \
