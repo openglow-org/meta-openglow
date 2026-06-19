@@ -7,7 +7,11 @@ iface lo inet loopback
 # Wireless interfaces
 auto wlan0
 iface wlan0 inet dhcp
-	wireless_mode managed
-	wireless_essid any
-	wpa-driver wext
+	# wl18xx is a mac80211/cfg80211 driver: drive wpa_supplicant via nl80211,
+	# not the legacy Wireless Extensions path. wext caused SIOCSIWENCODEEXT
+	# "Invalid argument" key-set errors and the kernel "wpa_supplicant uses
+	# wireless extensions" deprecation warning. wpa_supplicant manages the
+	# mode/ESSID from its config, so the old wireless-tools (iwconfig)
+	# wireless_mode/wireless_essid directives are dropped.
+	wpa-driver nl80211
 	wpa-conf /data/etc/wpa_supplicant.conf
