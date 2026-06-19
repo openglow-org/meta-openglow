@@ -15,10 +15,10 @@ S = "${WORKDIR}"
 inherit python3native
 inherit update-rc.d
 INITSCRIPT_PACKAGES = "${PN}"
-INITSCRIPT_NAME_${PN} = "gfui-client"
-INITSCRIPT_PARAMS_${PN} = "start 99 1 2 3 4 5 . stop 01 0 6 ."
+INITSCRIPT_NAME:${PN} = "gfui-client"
+INITSCRIPT_PARAMS:${PN} = "start 99 1 2 3 4 5 . stop 01 0 6 ."
 
-do_install_append() {
+do_install:append() {
   install -d ${D}${sysconfdir}
   install -d ${D}${sbindir}
   install -d ${D}${INIT_D_DIR}
@@ -27,10 +27,10 @@ do_install_append() {
   install -Dm 0755 ${WORKDIR}/gfui-client.init ${D}${INIT_D_DIR}/gfui-client
 }
 
-FILES_${PN} = " \
+FILES:${PN} = " \
   ${sysconfdir}/gfui-client.conf.sample \
   ${sbindir}/gfui-client.py \
   ${INIT_D_DIR}/gfui-client \
 "
 
-RDEPENDS_${PN} += "python3-core python3-gfhardware python3-gfutilities python3-daemonize"
+RDEPENDS:${PN} += "python3-core python3-gfhardware python3-gfutilities python3-daemonize"

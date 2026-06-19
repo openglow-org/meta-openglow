@@ -1,9 +1,10 @@
 DESCRIPTION = "Glowforge Kernel Module"
-LICENSE = "GPLv2"
+# Source headers grant "version 2 ... or (at your option) any later version".
+LICENSE = "GPL-2.0-or-later"
 
 PV = "0.0.1"
 
-SRC_URI = "git://github.com/ScottW514/kernel-module-glowforge.git;protocol=https"
+SRC_URI = "git://github.com/ScottW514/kernel-module-glowforge.git;protocol=https;branch=master"
 SRCREV = "0257f5ec6ca54887aae011389acc4345ce3874d4"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
