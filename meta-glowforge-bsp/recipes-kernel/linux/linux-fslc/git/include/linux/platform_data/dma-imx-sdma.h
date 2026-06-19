@@ -14,7 +14,7 @@
  * module boundary by pointer). struct sdma_engine / sdma_channel are kept
  * opaque here; glowforge.ko only holds handles to them.
  *
- * Copyright (C) 2018 Scott Wiederhold <s.e.wiederhold@gmail.com>
+ * Copyright (C) 2018-2026 Scott Wiederhold <s.e.wiederhold@gmail.com>
  * Portions Copyright (C) 2015-2018 Glowforge, Inc. <opensource@glowforge.com>
  */
 #ifndef __LINUX_PLATFORM_DATA_DMA_IMX_SDMA_H__

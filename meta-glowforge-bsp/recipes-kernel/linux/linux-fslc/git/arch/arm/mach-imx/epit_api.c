@@ -1,6 +1,6 @@
 /**
  * Low-level i.MX6 EPIT API.
- * Copyright (C) 2018 Scott Wiederhold <s.e.wiederhold@gmail.com>
+ * Copyright (C) 2018-2026 Scott Wiederhold <s.e.wiederhold@gmail.com>
  * Portions Copyright (C) 2015-2018 Glowforge, Inc. <opensource@glowforge.com>
  *
  * ForgeFIRM: forward-ported to linux-fslc 6.12. The only kernel-API change vs.
