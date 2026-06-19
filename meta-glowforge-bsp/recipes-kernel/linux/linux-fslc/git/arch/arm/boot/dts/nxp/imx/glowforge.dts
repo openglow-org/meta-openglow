@@ -284,16 +284,30 @@
 	 * CAM_SEL GPIO selects which sensor's MIPI CSI-2 stream reaches the shared
 	 * imx6-mipi-csi2 receiver; modelled with the mainline video-mux.
 	 *
-	 * HARDWARE BRING-UP TODO (confirm against the real board): the camera
-	 * supply rails (placeholders below), the CSI-2 lane count/order, the CAM_SEL
-	 * polarity, and whether per-sensor reset/powerdown GPIOs exist (omitted —
-	 * the factory enables the sensors through the mux OE). Validate at runtime
-	 * with media-ctl + a v4l2 capture.
+	 * Verified against the factory firmware DTB (imx6dl-glowforge-v20): the
+	 * sensor xvclk is a 24 MHz fixed oscillator; CSI-2 uses 2 data lanes;
+	 * CAM_SEL is gpio7-10 active-high; the mux output-enable is gpio6-7
+	 * active-low (default on); there are no per-sensor reset/powerdown GPIOs
+	 * (the rails are always-on and the sensors are gated via the mux OE). The
+	 * dvdd/dovdd/avdd fixed regulators below are not in the factory tree but the
+	 * mainline ov5648 driver requires them, so they are modelled always-on.
+	 *
+	 * Both sensors are bound via a dual "ovti,ov8856","ovti,ov5648" compatible
+	 * (matching the factory DTB) so one image covers standard (5 MP OV5648) and
+	 * "HD" (8 MP OV8856) units; the driver that matches the chip-id wins. The
+	 * endpoint link-frequencies list is the union of both drivers' 2-lane menus.
+	 *
+	 * CAVEAT (OV8856 only): mainline ov8856 expects a 19.2 MHz xvclk and only
+	 * WARNS at our 24 MHz, so it will probe/bind but its PLL/mode tables (and
+	 * thus the real MIPI link rate) are calibrated for 19.2 MHz -> streaming on
+	 * an HD unit will need a 24 MHz PLL config added to the driver. OV5648
+	 * (5 MP) streams correctly at 24 MHz. Both still need runtime imx-media
+	 * graph validation (media-ctl + v4l2 capture).
 	 */
 	clk_cam_xvclk: clock-cam-xvclk {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
-		clock-frequency = <25000000>; /* board 25 MHz sensor oscillator */
+		clock-frequency = <24000000>; /* 24 MHz sensor oscillator (per factory DTB) */
 	};
 
 	reg_cam_2v8: regulator-cam-2v8 {
@@ -387,11 +401,15 @@
 	pinctrl-0 = <&pinctrl_i2c1>;
 	status = "okay";
 
-	/* LID CAMERA (mainline ov5648 -> video-mux input 0) */
+	/* LID CAMERA: OV5648 (5 MP) or OV8856 (8 MP, "HD" units) -> video-mux in 0.
+	 * Dual compatible per the factory DTB: ov8856 is tried first and falls back
+	 * to ov5648 on I2C chip-id mismatch. */
 	ov5648_lid: camera@36 {
-		compatible = "ovti,ov5648";
+		compatible = "ovti,ov8856", "ovti,ov5648";
 		reg = <0x36>;
 		clocks = <&clk_cam_xvclk>;
+		clock-names = "xvclk";
+		clock-frequency = <24000000>; /* ov8856 reads this property directly */
 		dvdd-supply = <&reg_cam_1v5>;
 		dovdd-supply = <&reg_cam_1v8>;
 		avdd-supply = <&reg_cam_2v8>;
@@ -400,6 +418,10 @@
 				remote-endpoint = <&vmux_in_lid>;
 				clock-lanes = <0>;
 				data-lanes = <1 2>;
+				bus-type = <4>; /* MEDIA_BUS_TYPE_CSI2_DPHY */
+				/* superset of both drivers' 2-lane menus:
+				 * ov5648 {210,168} + ov8856 {360,180} MHz */
+				link-frequencies = /bits/ 64 <168000000 180000000 210000000 360000000>;
 			};
 		};
 	};
@@ -426,11 +448,14 @@
 	pinctrl-0 = <&pinctrl_i2c4>;
 	status = "okay";
 
-	/* HEAD CAMERA (mainline ov5648 -> video-mux input 1) */
+	/* HEAD CAMERA: OV5648 (5 MP) or OV8856 (8 MP, "HD" units) -> video-mux in 1.
+	 * Dual compatible per the factory DTB (see lid camera above). */
 	ov5648_head: camera@36 {
-		compatible = "ovti,ov5648";
+		compatible = "ovti,ov8856", "ovti,ov5648";
 		reg = <0x36>;
 		clocks = <&clk_cam_xvclk>;
+		clock-names = "xvclk";
+		clock-frequency = <24000000>; /* ov8856 reads this property directly */
 		dvdd-supply = <&reg_cam_1v5>;
 		dovdd-supply = <&reg_cam_1v8>;
 		avdd-supply = <&reg_cam_2v8>;
@@ -439,6 +464,10 @@
 				remote-endpoint = <&vmux_in_head>;
 				clock-lanes = <0>;
 				data-lanes = <1 2>;
+				bus-type = <4>; /* MEDIA_BUS_TYPE_CSI2_DPHY */
+				/* superset of both drivers' 2-lane menus:
+				 * ov5648 {210,168} + ov8856 {360,180} MHz */
+				link-frequencies = /bits/ 64 <168000000 180000000 210000000 360000000>;
 			};
 		};
 	};
