@@ -11,3 +11,7 @@ SRCREV = "${AUTOREV}"
 S = "${WORKDIR}/git"
 
 DEPENDS += "libv4l libjpeg-turbo"
+
+# gfhardware.cam configures the imx-media capture pipeline at runtime by
+# shelling out to media-ctl (links/pad formats) and v4l2-ctl (sensor controls).
+RDEPENDS:${PN} += "media-ctl v4l-utils"
