@@ -151,12 +151,6 @@
 			gpios = <&gpio6 7 GPIO_ACTIVE_LOW>;
 			default-state = "on";
 		};
-
-		interlock_reset {
-			label = "interlock_reset";
-			gpios = <&gpio4 5 GPIO_ACTIVE_HIGH>;
-			default-state = "off";
-		};
 	};
 
 	/* switches */
@@ -240,6 +234,11 @@
 		y2-step-gpio       = <&gpio2 29 0>;
 		laser-enable-gpio  = <&gpio2 30 0>;
 		laser-on-head-gpio = <&gpio2 31 0>;
+		/* laser-safety-chain readbacks (glowforge.ko cnc_get_* attrs) */
+		laser-on-gpio      = <&gpio1 5 0>;
+		button-latch-gpio  = <&gpio1 3 0>;
+		laser-pgood-gpio   = <&gpio4 21 0>;
+		interlock-latch-reset-gpio = <&gpio4 5 0>;
 		x-mode1-gpio       = <&gpio3 1 0>;
 		y1-enable-gpio     = <&gpio3 2 0>;
 		x-mode2-gpio       = <&gpio3 3 0>;
@@ -577,6 +576,11 @@
 				MX6QDL_PAD_KEY_COL2__GPIO4_IO10  WEAK_PULLUP	/* BEAM_DET_ERR */
 				MX6QDL_PAD_KEY_ROW4__GPIO4_IO15  WEAK_PULLUP	/* !BEAM_DET */
 				MX6QDL_PAD_GPIO_18__GPIO7_IO13   WEAK_PULLUP	/* BEAM_DET_LATCH_RST */
+				/* laser-safety-chain readback inputs */
+				MX6QDL_PAD_GPIO_3__GPIO1_IO03     WEAK_PULLUP	/* BUTTON_LATCH */
+				MX6QDL_PAD_GPIO_5__GPIO1_IO05     WEAK_PULLUP	/* LASER_ON */
+				MX6QDL_PAD_GPIO_19__GPIO4_IO05    (PAD_CTL_HYS | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | MUX_MODE_SION)	/* INTERLOCK_LATCH_RESET, no pull, SION */
+				MX6QDL_PAD_DISP0_DAT0__GPIO4_IO21 (PAD_CTL_HYS | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm)	/* LASER_PGOOD, no pull */
 			>;
 		};
 
@@ -693,7 +697,6 @@
 		pinctrl_outputs: glowforge_outputs {
 			fsl,pins = <
 				MX6QDL_PAD_NANDF_CLE__GPIO6_IO07  WEAK_PULLUP	/* CAM_!OE */
-				MX6QDL_PAD_GPIO_19__GPIO4_IO05    0x100b0	/* INTERLOCK_LATCH_RESET, no pulldown or pullup */
 			>;
 		};
 	};
