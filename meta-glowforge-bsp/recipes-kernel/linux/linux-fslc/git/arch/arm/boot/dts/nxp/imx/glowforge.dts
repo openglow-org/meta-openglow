@@ -14,7 +14,9 @@
  *               ovti,ov5648_mipi{,_slave}  ->  mainline ov5648 + imx-media.
  * Motion path is wired up: &epit1/&epit2, glowforge,cnc/thermal/pic/head all
  * present below and bound by glowforge.ko (EPIT + SDMA-expose ported). Still
- * deferred: glowforge,imx-pwm-audio (audio) — part of the PWM-prescaler work.
+ * deferred: glowforge,imx-pwm-audio (audio buzzer driver only — the PWM
+ * extra-prescale itself is NOT audio-scoped: the factory carried it on the
+ * laser PWM, ported here as the 0009 patch + fsl,extra-prescale on &pwm2).
  * The original nodes remain in the 4.14 tree for reference while ported.
  *
  * Copyright (C) 2020-2026 Scott Wiederhold <s.e.wiederhold@gmail.com>
@@ -727,6 +729,13 @@
 &pwm2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pwm2>;
+	/* LASER_PWM carrier: glowforge.ko programs a ~1925 ns period so the
+	 * SDMA script can write raw 7-bit power levels straight into PWMSAR;
+	 * the extra prescaler (0009 patch, factory 1001 mechanism) stretches
+	 * the output to ~25 us ≈ 40 kHz — the carrier the laser PSU expects —
+	 * without changing the valid duty range. NOT audio-related: the factory
+	 * 4.14 tree carried this exact property on the laser PWM. */
+	fsl,extra-prescale = <13>;
 	status = "okay";
 };
 

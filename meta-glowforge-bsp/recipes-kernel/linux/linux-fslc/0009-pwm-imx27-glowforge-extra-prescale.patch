@@ -1,0 +1,74 @@
+pwm: imx27: support the Glowforge fsl,extra-prescale divider
+
+ForgeFIRM laser-power fix (audit M8). The factory 4.14 tree carried
+fsl,extra-prescale = <13> on the laser PWM (via its 1001 patch): the
+glowforge.ko cnc engine programs a ~1925 ns period so the SDMA script
+can write raw 7-bit power levels straight into PWMSAR, and the extra
+prescaler stretches the actual output to ~25 us / ~40 kHz - the
+carrier the laser PSU expects - without changing the valid duty range.
+The 6.12 port dropped this (wrongly triaged as audio-only), leaving
+the laser PWM at ~520 kHz. There is no DT-only workaround: requesting
+25 us directly gives PWMPR ~1650 and caps the script's 7-bit writes at
+~8% duty.
+
+Re-derive against mainline pwm-imx27: multiply only the PWMCR
+prescaler field after the period/duty counts are computed (PWMPR and
+the SAR range are unaffected), bounds-check the field, read the
+property at probe (default 1 - no behavior change for other users).
+get_state() reads the register back and thus reports the stretched
+period; consistent, though asymmetric with the requested period, as in
+the factory driver.
+
+Upstream-Status: Inappropriate [embedded specific]
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/drivers/pwm/pwm-imx27.c
++++ b/drivers/pwm/pwm-imx27.c
+@@ -91,6 +91,15 @@ struct pwm_imx27_chip {
+ 	 * value to return in that case.
+ 	 */
+ 	unsigned int duty_cycle;
++
++	/*
++	 * Glowforge (fsl,extra-prescale): additional frequency divider
++	 * applied only to the clock prescaler, stretching the output period
++	 * by this factor without changing the PWMPR count - and therefore
++	 * without changing the range of valid PWMSAR duty values, which the
++	 * Glowforge SDMA script writes directly as raw 7-bit power levels.
++	 */
++	u32 extra_prescale;
+ };
+ 
+ static inline struct pwm_imx27_chip *to_pwm_imx27_chip(struct pwm_chip *chip)
+@@ -243,6 +252,17 @@ static int pwm_imx27_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+ 	duty_cycles = c;
+ 	duty_cycles /= prescale;
+ 
++	/*
++	 * Glowforge: stretch the output period by the extra prescale factor.
++	 * Applied after the period/duty counts are final so PWMPR and the
++	 * SAR duty range are unaffected; only the prescaler field grows.
++	 * (get_state() reads the register back, so it reports the stretched
++	 * period - consistent, though asymmetric with the requested period.)
++	 */
++	prescale *= imx->extra_prescale;
++	if (prescale > FIELD_MAX(MX3_PWMCR_PRESCALER) + 1)
++		return -EINVAL;
++
+ 	/*
+ 	 * according to imx pwm RM, the real period value should be PERIOD
+ 	 * value in PWMPR plus 2.
+@@ -419,6 +439,13 @@ static int pwm_imx27_probe(struct platform_device *pdev)
+ 		return dev_err_probe(&pdev->dev, PTR_ERR(imx->clk_per),
+ 				     "failed to get peripheral clock\n");
+ 
++	/* Glowforge: optional extra output-period divider (default 1). */
++	imx->extra_prescale = 1;
++	of_property_read_u32(pdev->dev.of_node, "fsl,extra-prescale",
++			     &imx->extra_prescale);
++	if (!imx->extra_prescale)
++		imx->extra_prescale = 1;
++
+ 	chip->ops = &pwm_imx27_ops;
+ 
+ 	imx->mmio_base = devm_platform_ioremap_resource(pdev, 0);
