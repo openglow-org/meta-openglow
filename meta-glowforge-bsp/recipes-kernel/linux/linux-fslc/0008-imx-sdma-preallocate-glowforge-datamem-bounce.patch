@@ -1,0 +1,169 @@
+imx-sdma: preallocate the glowforge datamem bounce buffer
+
+ForgeFIRM live-feed hardening (audit N8/N9). The glowforge datamem
+helpers allocated and freed a coherent bounce buffer on every call,
+which puts a dma_alloc_coherent() failure in the middle of the cnc
+feeder hot path (a head-sync read and tail-publish write happen on
+every pulse-data write). Allocate one page-sized bounce lazily and
+reuse it for the system lifetime, serialized by a mutex (all callers
+are process context; the API already slept).
+
+Also include the consumer contract header from the driver (guarded so
+the driver keeps its own struct sdma_context_data), so exported
+prototypes are compiler-checked against what glowforge.ko sees, and
+BUILD_BUG_ON both context layouts against the shared
+SDMA_CONTEXT_DATA_EXPECTED_SIZE constant.
+
+Upstream-Status: Inappropriate [embedded specific]
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/drivers/dma/imx-sdma.c
++++ b/drivers/dma/imx-sdma.c
+@@ -2471,6 +2471,41 @@ static struct platform_driver sdma_driver = {
+  * and sdma_load_script are un-static'd above; their EXPORT_SYMBOL()s are here.
+  * ==========================================================================*/
+ 
++/* Pull in the consumer contract header so the compiler cross-checks every
++ * exported prototype against what glowforge.ko compiles against. The guard
++ * macro suppresses the header's mirrored struct sdma_context_data (this
++ * driver has its own definition of the same name); the shared
++ * SDMA_CONTEXT_DATA_EXPECTED_SIZE constant lets both sides assert their
++ * struct layout hasn't drifted. */
++#define IMX_SDMA_DRIVER_HAS_CONTEXT_STRUCT
++#include <linux/platform_data/dma-imx-sdma.h>
++
++/*
++ * Preallocated bounce buffer for the glowforge datamem transfers. The cnc
++ * feeder hot path performs a context read (head sync) and a context write
++ * (tail publish) on every pulse-data write(); allocating and freeing a
++ * coherent bounce per call put a dma_alloc_coherent() failure (-ENOMEM under
++ * memory pressure) in the middle of a running cut. Allocate once, reuse
++ * forever (this driver is built in; the buffer lives for the system's
++ * lifetime). One page covers every current user: the cnc SDMA script is
++ * ~280 bytes, a full channel context 128 bytes.
++ */
++#define SDMA_GF_BOUNCE_SIZE PAGE_SIZE
++static DEFINE_MUTEX(sdma_gf_bounce_mutex);
++static void *sdma_gf_bounce_virt;
++static dma_addr_t sdma_gf_bounce_phys;
++
++/* Must be called with sdma_gf_bounce_mutex held. */
++static int sdma_gf_bounce_get(struct sdma_engine *sdma, int size)
++{
++	if (size <= 0 || size > SDMA_GF_BOUNCE_SIZE)
++		return -EINVAL;
++	if (!sdma_gf_bounce_virt)
++		sdma_gf_bounce_virt = dma_alloc_coherent(sdma->dev,
++			SDMA_GF_BOUNCE_SIZE, &sdma_gf_bounce_phys, GFP_KERNEL);
++	return sdma_gf_bounce_virt ? 0 : -ENOMEM;
++}
++
+ u32 sdma_channel_context_base(int ch)
+ {
+ 	return 2048 + (sizeof(struct sdma_context_data) / 4) * ch;
+@@ -2479,6 +2514,10 @@ EXPORT_SYMBOL(sdma_channel_context_base);
+ 
+ struct sdma_engine *sdma_engine_get(void)
+ {
++	/* Layout drift between this driver's context struct and the contract
++	 * header's mirror would corrupt every partial context load/fetch. */
++	BUILD_BUG_ON(sizeof(struct sdma_context_data) !=
++		     SDMA_CONTEXT_DATA_EXPECTED_SIZE);
+ 	return sdma_singleton;
+ }
+ EXPORT_SYMBOL(sdma_engine_get);
+@@ -2494,37 +2533,29 @@ EXPORT_SYMBOL(sdma_get_channel);
+ int sdma_write_datamem(struct sdma_engine *sdma, void *buf, int size, u32 address)
+ {
+ 	struct sdma_buffer_descriptor *bd0 = sdma->bd0;
+-	void *buf_virt;
+-	dma_addr_t buf_phys;
+ 	int ret;
+ 	unsigned long flags;
+-	bool use_iram = sdma->iram_pool;
+ 
+-	if (use_iram)
+-		buf_virt = gen_pool_dma_alloc(sdma->iram_pool, size, &buf_phys);
+-	else
+-		buf_virt = dma_alloc_coherent(sdma->dev, size, &buf_phys, GFP_KERNEL);
+-	if (!buf_virt)
+-		return -ENOMEM;
++	mutex_lock(&sdma_gf_bounce_mutex);
++	ret = sdma_gf_bounce_get(sdma, size);
++	if (ret) {
++		mutex_unlock(&sdma_gf_bounce_mutex);
++		return ret;
++	}
++	memcpy(sdma_gf_bounce_virt, buf, size);
+ 
+ 	spin_lock_irqsave(&sdma->channel_0_lock, flags);
+ 
+ 	bd0->mode.command = C0_SETDM;
+ 	bd0->mode.status = BD_DONE | BD_INTR | BD_WRAP | BD_EXTD;
+ 	bd0->mode.count = size / 4;
+-	bd0->buffer_addr = buf_phys;
++	bd0->buffer_addr = sdma_gf_bounce_phys;
+ 	bd0->ext_buffer_addr = address;
+ 
+-	memcpy(buf_virt, buf, size);
+-
+ 	ret = sdma_run_channel0(sdma);
+ 
+ 	spin_unlock_irqrestore(&sdma->channel_0_lock, flags);
+-
+-	if (use_iram)
+-		gen_pool_free(sdma->iram_pool, (unsigned long)buf_virt, size);
+-	else
+-		dma_free_coherent(sdma->dev, size, buf_virt, buf_phys);
++	mutex_unlock(&sdma_gf_bounce_mutex);
+ 
+ 	return ret;
+ }
+@@ -2533,37 +2564,31 @@ EXPORT_SYMBOL(sdma_write_datamem);
+ int sdma_fetch_datamem(struct sdma_engine *sdma, void *buf, int size, u32 address)
+ {
+ 	struct sdma_buffer_descriptor *bd0 = sdma->bd0;
+-	void *buf_virt;
+-	dma_addr_t buf_phys;
+ 	int ret;
+ 	unsigned long flags;
+-	bool use_iram = sdma->iram_pool;
+ 
+-	if (use_iram)
+-		buf_virt = gen_pool_dma_alloc(sdma->iram_pool, size, &buf_phys);
+-	else
+-		buf_virt = dma_alloc_coherent(sdma->dev, size, &buf_phys, GFP_KERNEL);
+-	if (!buf_virt)
+-		return -ENOMEM;
++	mutex_lock(&sdma_gf_bounce_mutex);
++	ret = sdma_gf_bounce_get(sdma, size);
++	if (ret) {
++		mutex_unlock(&sdma_gf_bounce_mutex);
++		return ret;
++	}
+ 
+ 	spin_lock_irqsave(&sdma->channel_0_lock, flags);
+ 
+ 	bd0->mode.command = C0_GETDM;
+ 	bd0->mode.status = BD_DONE | BD_INTR | BD_WRAP | BD_EXTD;
+ 	bd0->mode.count = size / 4;
+-	bd0->buffer_addr = buf_phys;
++	bd0->buffer_addr = sdma_gf_bounce_phys;
+ 	bd0->ext_buffer_addr = address;
+ 
+ 	ret = sdma_run_channel0(sdma);
+ 
+-	memcpy(buf, buf_virt, size);
+-
+ 	spin_unlock_irqrestore(&sdma->channel_0_lock, flags);
+ 
+-	if (use_iram)
+-		gen_pool_free(sdma->iram_pool, (unsigned long)buf_virt, size);
+-	else
+-		dma_free_coherent(sdma->dev, size, buf_virt, buf_phys);
++	if (!ret)
++		memcpy(buf, sdma_gf_bounce_virt, size);
++	mutex_unlock(&sdma_gf_bounce_mutex);
+ 
+ 	return ret;
+ }

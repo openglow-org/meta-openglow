@@ -23,6 +23,17 @@
 #include <linux/types.h>
 #include <linux/dmaengine.h>
 
+/* Contract guard: both this header's mirrored context struct and the
+ * driver's own definition must be exactly this many bytes (32 words); each
+ * side BUILD_BUG_ONs against it, so layout drift on either side breaks the
+ * build instead of silently corrupting partial context loads/fetches. */
+#define SDMA_CONTEXT_DATA_EXPECTED_SIZE 128
+
+/* imx-sdma.c defines its own identically-named struct; it defines this guard
+ * macro before including us so only the prototypes (and the size contract
+ * above) are shared with the driver itself. */
+#ifndef IMX_SDMA_DRIVER_HAS_CONTEXT_STRUCT
+
 /* SDMA channel context register file (mirrors drivers/dma/imx-sdma.c). */
 struct sdma_state_registers {
 	u32 pc     :14;
@@ -64,6 +75,8 @@ struct sdma_context_data {
 	u32  scratch6;
 	u32  scratch7;
 } __attribute__ ((packed));
+
+#endif /* IMX_SDMA_DRIVER_HAS_CONTEXT_STRUCT */
 
 /* Opaque to consumers; full definitions live in drivers/dma/imx-sdma.c. */
 struct sdma_engine;

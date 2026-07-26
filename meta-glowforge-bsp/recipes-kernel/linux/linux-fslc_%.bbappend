@@ -26,5 +26,6 @@ SRC_URI:append:glowforge = " \
     file://0005-media-video-mux-forward-get_mbus_config.patch \
     file://0006-media-ov5648-implement-get_mbus_config.patch \
     file://0007-media-imx6-mipi-csi2-link-freq-behind-mux.patch \
+    file://0008-imx-sdma-preallocate-glowforge-datamem-bounce.patch \
 "
 # (KERNEL_DEVICETREE = nxp/imx/glowforge.dtb is set in conf/machine/glowforge.conf.)
