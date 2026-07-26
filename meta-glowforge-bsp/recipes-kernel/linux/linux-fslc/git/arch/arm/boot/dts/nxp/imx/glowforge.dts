@@ -273,7 +273,16 @@
 		pwms               = <&pwm2 0 100000 0>;
 		pwm-names          = "laser-pwm";
 		timer              = <&epit1>;
-		sdma-params        = <26 0xe00>;
+		/* SDMA channel 26; script origin 0xF00 (32-bit words) = halfword
+		 * 7680. The factory used 0xe00 (halfword 7168), which the current
+		 * NXP sdma-imx6q.bin RAM firmware (v3.6: halfwords 6144-7520) now
+		 * overlaps — whichever loaded last silently corrupted the other.
+		 * SDMA RAM spans halfwords 4096-8191 (8 KB; IMX6SDLRM SDMA memory
+		 * map: RAM = words 0x0800-0x0FFF), so the script at 7680-7819 clears
+		 * the firmware with 372 halfwords of RAM headroom left above it.
+		 * glowforge.ko additionally verifies/reloads the script before every
+		 * run. */
+		sdma-params        = <26 0xF00>;
 	};
 
 	/* coolant/fans/TEC (glowforge,thermal -> glowforge.ko) */
