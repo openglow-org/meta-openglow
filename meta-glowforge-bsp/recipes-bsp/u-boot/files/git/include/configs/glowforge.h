@@ -110,10 +110,10 @@
 #define CONFIG_SYS_MEMTEST_END        0x26e00000             /* End memory location (assuming 512MB total) */
 #define CONFIG_SYS_MEMTEST_SCRATCH    0x26e00004             /* 4-byte long location to allow writing anti-pattern to bus */
 
-/* Environment organization */
-#define CONFIG_ENV_SIZE      (8 * 1024)   /* 8 KB */
-#define CONFIG_ENV_IS_IN_MMC
-#define CONFIG_ENV_OFFSET    (1024 * 512) /* Located at 512 KB, block 1024 (0x400) */
+/* Environment organization: CONFIG_ENV_IS_IN_MMC / CONFIG_ENV_SIZE (0x2000) /
+ * CONFIG_ENV_OFFSET (0x80000) / the redundant copy at 0x82000 are Kconfig
+ * symbols in 2020.01 and live in configs/glowforge_defconfig; the old
+ * #defines here were dead and left the binary with ENV_IS_NOWHERE. */
 
 #define GF_RECOVERY_FDT_ADDR   "0x600"  /* Located at .75 MB, block 1536 */
 #define GF_RECOVERY_FDT_SIZE   "0x80"   /* 64 KB, 128 blocks */
