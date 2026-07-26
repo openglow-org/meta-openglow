@@ -6,10 +6,10 @@ LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=62f8bb455fcc4bf177ecab380f71cd5d"
 
 SRC_URI = "git://github.com/ScottW514/python3-gfhardware.git;protocol=https;branch=master"
-# Pinned to the imx-media camera port (mainline capture pipeline). Bump
-# deliberately; AUTOREV is not reproducible and once built the pre-port code,
-# which targets the removed factory NXP V4L2 stack.
-SRCREV = "9bf31fdebe86c14f05806b1f822d49e09bc7a8e8"
+# Pinned; bump deliberately (AUTOREV is not reproducible and once built stale
+# code). Current pin: nvmem machine identity, V4L2 error-path hardening,
+# cnc/cooling fixes, and the deadman-armed cloud run loop (audit Phase 5).
+SRCREV = "1f91f61552a8b63ed335859b1639de1702822329"
 
 S = "${WORKDIR}/git"
 
