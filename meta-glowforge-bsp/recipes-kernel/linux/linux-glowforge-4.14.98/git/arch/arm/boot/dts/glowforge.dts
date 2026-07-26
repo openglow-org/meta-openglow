@@ -182,6 +182,9 @@
 		compatible = "glowforge,cnc";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_cnc>;
+		/* 40 V stepper rail consumer mapping; required on ≥4.x kernels
+		 * (the factory 3.14 regulator core matched the bare name "40v"). */
+		40v-supply         = <&reg_40v>;
 		latch-reset-gpio   = <&gpio1 7 0>; /* BUTTON_LATCH_RST */
 		z-dir-gpio         = <&gpio2 17 0>;
 		y1-dir-gpio        = <&gpio2 18 0>;

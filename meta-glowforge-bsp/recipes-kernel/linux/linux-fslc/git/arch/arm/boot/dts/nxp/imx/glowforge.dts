@@ -223,6 +223,13 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_cnc>;
 		memory-region = <&cnc_reserved>; /* dedicated 128 MiB SDMA pulse ring */
+		/* 40 V stepper rail, exclusive consumer (stepper power on/off).
+		 * Mandatory: without this mapping devm_regulator_get_exclusive()
+		 * returns -ENODEV on mainline. (The factory 3.14 kernel resolved
+		 * the bare name "40v" via the regulator core's lookup-by-name
+		 * fallback, which mainline later removed — the factory DTB has no
+		 * 40v-supply property either.) */
+		40v-supply         = <&reg_40v>;
 		latch-reset-gpio   = <&gpio1 7 0>; /* BUTTON_LATCH_RST */
 		z-dir-gpio         = <&gpio2 17 0>;
 		y1-dir-gpio        = <&gpio2 18 0>;
