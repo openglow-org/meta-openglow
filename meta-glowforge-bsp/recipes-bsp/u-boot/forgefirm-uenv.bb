@@ -1,5 +1,9 @@
 SUMMARY = "U-Boot Environment File"
 DESCRIPTION = "Sets U-Boot environment for proper OpenGlow boot on Glowforge factory hardware"
+# Named forgefirm-uenv because poky Scarthgap's u-boot.inc creates a
+# ${PN}-env subpackage from the u-boot recipe itself: a recipe named
+# u-boot-env is shadowed by that subpackage, which silently replaced this
+# uEnv.txt with fw_env.config in the image (audit M12).
 
 LICENSE = "GPL-2.0-only"
 LICENSE_PATH = "${S}"

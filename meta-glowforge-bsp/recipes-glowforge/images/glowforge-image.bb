@@ -1,6 +1,6 @@
 DESCRIPTION = "OpenGlow image for Glowforge"
 
-LICENSE = "GPLv2"
+LICENSE = "GPL-2.0-only"
 
 inherit core-image
 
@@ -25,7 +25,7 @@ IMAGE_INSTALL = " \
 	python3 \
 	python3-gfhardware \
 	python3-gfutilities \
-	u-boot-env \
+	forgefirm-uenv \
 	libubootenv-bin \
 	watchdog \
 	wpa-supplicant \
