@@ -83,6 +83,9 @@ int  sdma_load_partial_context(struct sdma_channel *sdmac,
 int  sdma_fetch_partial_context(struct sdma_channel *sdmac, void *buf,
 		u32 byte_offset, u32 num_bytes);
 int  sdma_write_datamem(struct sdma_engine *sdma, void *buf, int size, u32 address);
+int  sdma_fetch_datamem(struct sdma_engine *sdma, void *buf, int size, u32 address);
+int  sdma_config_ownership(struct sdma_channel *sdmac,
+		bool event_override, bool mcu_override, bool dsp_override);
 ssize_t sdma_print_context(struct sdma_engine *sdma, int channel, char *buf);
 
 #endif /* __LINUX_PLATFORM_DATA_DMA_IMX_SDMA_H__ */
