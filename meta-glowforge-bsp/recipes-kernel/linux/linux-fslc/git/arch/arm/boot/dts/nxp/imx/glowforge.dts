@@ -43,9 +43,9 @@
 	};
 
 	/*
-	 * Memory reserved for DMA. cnc_buffer.c allocates a 128 MiB coherent buffer
-	 * for the SDMA pulse ring; the camera/IPU/VPU need contiguous capture
-	 * buffers. Total here is 256 MiB on a 512 MB SOM (matches the factory split).
+	 * Memory reserved for DMA: a dedicated pool for the cnc SDMA pulse ring
+	 * plus the default CMA for camera/IPU/VPU capture buffers - 80 MiB total
+	 * on the 512 MB SOM.
 	 */
 	reserved-memory {
 		#address-cells = <1>;
@@ -53,30 +53,31 @@
 		ranges;
 
 		/*
-		 * Dedicated, EXCLUSIVE 128 MiB coherent pool for the cnc SDMA pulse
-		 * ring (glowforge,cnc references it via memory-region below; cnc.c calls
+		 * Dedicated, EXCLUSIVE coherent pool for the cnc SDMA pulse ring
+		 * (glowforge,cnc references it via memory-region below; cnc.c calls
 		 * of_reserved_mem_device_init()). Pulling the ring from the shared CMA
 		 * fails once boot has fragmented it (cma_alloc -EBUSY) because the
-		 * out-of-tree module probes late; a non-reusable shared-dma-pool (which
-		 * must be no-map) is never touched by movable allocations and, 128 MiB-
-		 * aligned, satisfies dma_alloc_coherent() deterministically.
+		 * out-of-tree module probes late; a non-reusable shared-dma-pool
+		 * (which must be no-map) is never touched by movable allocations and,
+		 * size-aligned, satisfies dma_alloc_coherent() deterministically.
+		 *
+		 * Sizing: the grblHAL live feed keeps only a few KB in flight; legacy
+		 * cloud mode preloads a job's ENTIRE pulse file into the ring, so the
+		 * pool caps cloud-mode job length (~1 MiB per 100 s of 10 kHz
+		 * stream; 16 MiB = ~28 min). The module's ring_mb parameter must fit
+		 * this pool - raise both for longer cloud jobs.
 		 */
 		cnc_reserved: cnc-pulsebuf {
 			compatible = "shared-dma-pool";
 			no-map;
-			size = <0x08000000>;      /* 128 MiB */
-			alignment = <0x08000000>; /* 128 MiB-aligned base */
+			size = <0x01000000>;      /* 16 MiB */
+			alignment = <0x01000000>; /* size-aligned base */
 		};
 
 		/*
 		 * Reusable CMA for camera/IPU/VPU capture buffers (default area).
-		 * 64 MiB, not 128: the cnc pool above is 128 MiB and must be
-		 * 128 MiB-aligned, so it sits at 0x20000000 and splits the 512 MiB
-		 * of RAM in two, leaving no second contiguous 128 MiB hole — a
-		 * 128 MiB request here fails placement and the kernel silently
-		 * falls back to its 64 MiB default. The cnc ring has its own
-		 * dedicated pool, so this only backs camera/IPU/VPU buffers
-		 * (a 2592x1944 SBGGR8 frame is ~5 MiB; 64 MiB is ample).
+		 * A 2592x1944 SBGGR8 frame is ~5 MiB; 64 MiB is ample for the
+		 * capture queues plus the VPU JPEG contexts.
 		 */
 		linux,cma {
 			compatible = "shared-dma-pool";
@@ -452,10 +453,18 @@
 		};
 	};
 
-	/* LID ACCELEROMETER */
+	/* LID ACCELEROMETER
+	 * Supplies and mount-matrix are declared to keep the st_accel probe
+	 * quiet: the 3.3 V rail models the harness feed, and the identity
+	 * matrix is explicit because consumers work in raw counts. */
 	lid-accel@1e {
 		reg = <0x1e>;
 		compatible = "st,lis2hh12";
+		vdd-supply = <&reg_3p3v>;
+		vddio-supply = <&reg_3p3v>;
+		mount-matrix = "1", "0", "0",
+			       "0", "1", "0",
+			       "0", "0", "1";
 	};
 };
 
@@ -513,11 +522,21 @@
 	head-accel@1e {
 		reg = <0x1e>;
 		compatible = "st,lis2hh12";
+		vdd-supply = <&reg_3p3v>;
+		vddio-supply = <&reg_3p3v>;
+		mount-matrix = "1", "0", "0",
+			       "0", "1", "0",
+			       "0", "0", "1";
 	};
 	/* CONTROL BOARD ACCELEROMETER */
 	board-accel@1d {
 		reg = <0x1d>;
 		compatible = "st,lis2hh12";
+		vdd-supply = <&reg_3p3v>;
+		vddio-supply = <&reg_3p3v>;
+		mount-matrix = "1", "0", "0",
+			       "0", "1", "0",
+			       "0", "0", "1";
 	};
 };
 
