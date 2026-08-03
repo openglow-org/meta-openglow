@@ -5,7 +5,7 @@ require python-gfutilities.inc
 # handling on master has no PyPI release yet. Pin deliberately, like the
 # other project repos.
 SRC_URI = "git://github.com/ScottW514/Glowforge-Utilities.git;protocol=https;branch=master"
-SRCREV = "2d24239b6ef04760859360dfe441b296432ff8fe"
+SRCREV = "19278d241ece680a7102e9f1c9ebcaf85b4dfdb8"
 
 PV = "0.9.1+git"
 
