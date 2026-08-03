@@ -1,6 +1,6 @@
 pwm: imx27: support the Glowforge fsl,extra-prescale divider
 
-ForgeFIRM laser-power fix (audit M8). The factory 4.14 tree carried
+ForgeFIRM laser-power fix. The factory 4.14 tree carried
 fsl,extra-prescale = <13> on the laser PWM (via its 1001 patch): the
 glowforge.ko cnc engine programs a ~1925 ns period so the SDMA script
 can write raw 7-bit power levels straight into PWMSAR, and the extra

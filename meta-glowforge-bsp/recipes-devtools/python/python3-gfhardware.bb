@@ -6,9 +6,7 @@ LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=62f8bb455fcc4bf177ecab380f71cd5d"
 
 SRC_URI = "git://github.com/ScottW514/python3-gfhardware.git;protocol=https;branch=master"
-# Pinned; bump deliberately (AUTOREV is not reproducible and once built stale
-# code). Current pin: nvmem machine identity, V4L2 error-path hardening,
-# cnc/cooling fixes, and the deadman-armed cloud run loop (audit Phase 5).
+# Pinned; bump deliberately (AUTOREV is not reproducible).
 SRCREV = "b08421b2e0d4631d9d96515069c77dc78edf24f1"
 
 S = "${WORKDIR}/git"

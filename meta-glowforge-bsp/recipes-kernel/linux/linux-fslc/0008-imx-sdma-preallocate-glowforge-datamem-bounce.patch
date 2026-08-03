@@ -1,6 +1,6 @@
 imx-sdma: preallocate the glowforge datamem bounce buffer
 
-ForgeFIRM live-feed hardening (audit N8/N9). The glowforge datamem
+ForgeFIRM live-feed hardening. The glowforge datamem
 helpers allocated and freed a coherent bounce buffer on every call,
 which puts a dma_alloc_coherent() failure in the middle of the cnc
 feeder hot path (a head-sync read and tail-publish write happen on

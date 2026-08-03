@@ -9,13 +9,13 @@
 # glowforge_defconfig, include/configs/glowforge.h) plus a small arch-Kconfig
 # registration patch, all via u-boot-glowforge-common_${PV}.inc.
 #
-# History: this was a .bbappend onto poky's Dunfell-era u-boot_2020.01.bb, which
-# no longer exists in Scarthgap, so it is now a self-contained recipe.
+# Self-contained recipe: Scarthgap's poky has no u-boot 2020.01 base recipe to
+# extend with a .bbappend.
 #
 # Status: builds clean under Scarthgap (GCC 13), no source fixes needed, and
 # deploys u-boot-glowforge.imx via the legacy IMX_CONFIG mkimage flow.
-# Remaining (image-level, Scarthgap migration #3): fw_printenv/fw_setenv now come
-# from libubootenv rather than u-boot-fw-utils — revisit
+# Remaining (image-level): in Scarthgap, fw_printenv/fw_setenv come from
+# libubootenv rather than u-boot-fw-utils — revisit
 # PREFERRED_PROVIDER_u-boot-fw-utils in glowforge.inc when the rootfs needs them.
 
 require recipes-bsp/u-boot/u-boot-common.inc
