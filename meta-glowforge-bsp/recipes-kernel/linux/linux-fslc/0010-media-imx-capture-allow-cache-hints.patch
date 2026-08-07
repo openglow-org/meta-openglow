@@ -1,0 +1,33 @@
+media: imx: capture: allow vb2 cache hints (non-coherent MMAP buffers)
+
+ForgeFIRM camera stream path. The i.MX6 has no hardware demosaic, so
+userspace must read every captured Bayer frame. The default coherent MMAP
+buffers map uncached on ARM, and CPU reads from an uncached mapping cost a
+bus transaction per access - an order of magnitude slower than reading the
+same DRAM through the cache. vb2 already implements the fix
+(V4L2_MEMORY_FLAG_NON_COHERENT REQBUFS allocates CPU-cached buffers and
+does the cache maintenance at QBUF/DQBUF) but only when the driver opts in
+via allow_cache_hints; opt the imx capture queue in. Userspace that does
+not pass the flag is unaffected.
+
+Upstream-Status: Pending
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/drivers/staging/media/imx/imx-media-capture.c
++++ b/drivers/staging/media/imx/imx-media-capture.c
+@@ -1025,7 +1025,15 @@
+ 	vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
+ 	vq->lock = &priv->mutex;
+ 	vq->min_queued_buffers = 2;
+ 	vq->dev = priv->dev;
++	/*
++	 * ForgeFIRM: permit V4L2_MEMORY_FLAG_NON_COHERENT (CPU-cached) MMAP
++	 * buffers. There is no hardware demosaic, so userspace reads every
++	 * captured Bayer frame; a cached mapping (vb2 does the cache
++	 * maintenance at QBUF/DQBUF) reads an order of magnitude faster than
++	 * the coherent uncached default.
++	 */
++	vq->allow_cache_hints = 1;
+ 
+ 	ret = vb2_queue_init(vq);
+ 	if (ret) {

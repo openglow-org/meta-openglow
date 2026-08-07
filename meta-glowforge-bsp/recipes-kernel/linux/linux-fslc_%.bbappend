@@ -15,8 +15,10 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 # file://git/) + the Makefile hook that registers glowforge.dtb, the EPIT/SDMA
 # motion-path exposes, the spi-imx PIC inter-word delay (0004, re-derived from
 # the factory 4.14 "Add delay to SPI"), the SDMA live-feed hardening (0008),
-# and the laser-PWM extra prescaler (0009, factory 1001 — the ~40 kHz laser
-# carrier; not audio-scoped). Still deferred: the audio buzzer driver.
+# the laser-PWM extra prescaler (0009, factory 1001 — the ~40 kHz laser
+# carrier; not audio-scoped), and the capture-queue cache-hint opt-in (0010,
+# lets forgectrl request CPU-cached capture buffers). Still deferred: the
+# audio buzzer driver.
 SRC_URI:append:glowforge = " \
     file://glowforge.cfg \
     file://git/ \
@@ -29,5 +31,6 @@ SRC_URI:append:glowforge = " \
     file://0007-media-imx6-mipi-csi2-link-freq-behind-mux.patch \
     file://0008-imx-sdma-preallocate-glowforge-datamem-bounce.patch \
     file://0009-pwm-imx27-glowforge-extra-prescale.patch \
+    file://0010-media-imx-capture-allow-cache-hints.patch \
 "
 # (KERNEL_DEVICETREE = nxp/imx/glowforge.dtb is set in conf/machine/glowforge.conf.)
