@@ -7,7 +7,7 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=62f8bb455fcc4bf177ecab380f71cd5d"
 
 SRC_URI = "git://github.com/ScottW514/python3-gfhardware.git;protocol=https;branch=master"
 # Pinned; bump deliberately (AUTOREV is not reproducible).
-SRCREV = "8aa4a493e0c94647be9377e2748278f7f6220d27"
+SRCREV = "cfd6a28a63483d5410d84e24a43e641e6b35f529"
 
 S = "${WORKDIR}/git"
 
