@@ -28,7 +28,6 @@ IMAGE_INSTALL = " \
 	forgefirm-uenv \
 	libubootenv-bin \
 	watchdog \
-	wireless-regdb-static \
 	wpa-supplicant \
 	wlconf \
 "

@@ -517,6 +517,7 @@
 	lm75b@48 {
 		reg = <0x48>;
 		compatible = "national,lm75b";
+		vs-supply = <&reg_3p3v>;
 	};
 	/* HEAD ACCELEROMETER */
 	head-accel@1e {
