@@ -4,15 +4,14 @@ require python-gfutilities.inc
 # Fetched from git rather than the PyPI 0.9.1 sdist: the deadman/failsafe
 # handling on master has no PyPI release yet. Pin deliberately, like the
 # other project repos.
-SRC_URI = "git://github.com/ScottW514/Glowforge-Utilities.git;protocol=https;branch=cloud-action-surface"
-# TEST-image pin to the cloud-action-surface branch (full cloud action surface,
-# session lifecycle, gfcloud daemon support); repoint to master after merge.
-SRCREV = "69e6c35df3f0365f034f07909ae2add359827124"
+SRC_URI = "git://github.com/ScottW514/Glowforge-Utilities.git;protocol=https;branch=master"
+# Pinned; bump deliberately, like the other project repos.
+SRCREV = "1a7522fe374f7079a7b95c19f6f392fc4f4cba61"
 
-# 0.9.2: the full cloud action surface, session-lifecycle robustness, and
-# gfcloud daemon support. Bumped past 0.9.1 so the git-hash-derived package
-# version stays monotonic (a lower short hash would otherwise trip the
+# 0.9.3: clean service shutdown (the WS client and action threads cannot
+# outlive a stop). Bumped so the git-hash-derived package version stays
+# monotonic (a lower short hash would otherwise trip the
 # version-going-backwards QA against the previous pin).
-PV = "0.9.2+git"
+PV = "0.9.3+git"
 
 S = "${WORKDIR}/git"
