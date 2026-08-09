@@ -5,9 +5,9 @@ SUMMARY = "Python modules for accessing and controlling Glowforge brand CNC lase
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=62f8bb455fcc4bf177ecab380f71cd5d"
 
-SRC_URI = "git://github.com/ScottW514/python3-gfhardware.git;protocol=https;branch=master"
+SRC_URI = "git://github.com/ScottW514/python3-gfhardware.git;protocol=https;branch=cloud-action-surface"
 # Pinned; bump deliberately (AUTOREV is not reproducible).
-SRCREV = "cfd6a28a63483d5410d84e24a43e641e6b35f529"
+SRCREV = "f2dbcd91cc2e8e5fe40b1b0229920dd295a3ba94"
 
 S = "${WORKDIR}/git"
 
