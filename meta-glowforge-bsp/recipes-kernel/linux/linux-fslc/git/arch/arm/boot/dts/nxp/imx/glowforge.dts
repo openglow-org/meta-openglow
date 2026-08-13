@@ -134,13 +134,10 @@
 			regulator-max-microvolt = <40000000>;
 		};
 
-		control_12v: control_12v {
-			compatible = "reg-userspace-consumer";
-			regulator-name = "control_12v";
-			regulator-boot-on;
-			regulator-supplies = "12v";
-			12v-supply = <&reg_12v>;
-		};
+		/*
+		 * The 12 V control rail has no userspace consumer node: it is
+		 * always-on above, and nothing in the firmware switches it.
+		 */
 	};
 
 	/* outputs control */
