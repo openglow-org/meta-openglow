@@ -14,6 +14,14 @@ inherit module
 # via tools/sdma_asm.pl (Perl) during do_compile, so perl must be on PATH.
 DEPENDS += "perl-native"
 
+# Warnings are errors for this module in this build. The kernel makes a core
+# set fatal on its own (implicit declarations, return types, incompatible
+# pointer types) but leaves the rest as warnings unless CONFIG_WERROR is set,
+# and a bitbake compile log is not somewhere warnings get noticed. Enforced
+# here rather than in the module's Makefile so an out-of-tree build against a
+# different kernel or compiler is not held to this project's toolchain.
+EXTRA_OEMAKE += "KCFLAGS=-Werror"
+
 S = "${WORKDIR}/git"
 
 do_install() {
