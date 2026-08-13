@@ -281,7 +281,10 @@
 		 * map: RAM = words 0x0800-0x0FFF), so the script at 7680-7819 clears
 		 * the firmware with 372 halfwords of RAM headroom left above it.
 		 * glowforge.ko additionally verifies/reloads the script before every
-		 * run. */
+		 * run. Note the RAM firmware does not actually load in this image:
+		 * the built-in imx-sdma probes before the rootfs is mounted and falls
+		 * back to the ROM scripts, so the overlap is latent — an initramfs or
+		 * a modular imx-sdma would arm it. */
 		sdma-params        = <26 0xF00>;
 	};
 
