@@ -6,12 +6,13 @@ require python-gfutilities.inc
 # other project repos.
 SRC_URI = "git://github.com/ScottW514/Glowforge-Utilities.git;protocol=https;branch=master"
 # Pinned; bump deliberately, like the other project repos.
-SRCREV = "1a7522fe374f7079a7b95c19f6f392fc4f4cba61"
+SRCREV = "11e4b85a3bfef9deafd57cd2cd645f877a0358e4"
 
-# 0.9.3: clean service shutdown (the WS client and action threads cannot
-# outlive a stop). Bumped so the git-hash-derived package version stays
-# monotonic (a lower short hash would otherwise trip the
-# version-going-backwards QA against the previous pin).
-PV = "0.9.3+git"
+# 0.9.4: the service stack fails toward stopped-and-safe (guarded loop,
+# reconnect-surviving WS client, action-thread lifecycle, header
+# validation before the ring loads). Bumped so the git-hash-derived
+# package version stays monotonic (a lower short hash would otherwise
+# trip the version-going-backwards QA against the previous pin).
+PV = "0.9.4+git"
 
 S = "${WORKDIR}/git"
