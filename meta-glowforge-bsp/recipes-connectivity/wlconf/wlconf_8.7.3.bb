@@ -15,16 +15,16 @@ do_install() {
 	install -d ${D}/lib/firmware/ti-connectivity
 
 	install -m 0755 wlconf ${D}${sbindir}/wlconf/
-	install -m 0755 dictionary.txt ${D}${sbindir}/wlconf/
-	install -m 0755 struct.bin ${D}${sbindir}/wlconf/
-	install -m 0755 default.conf ${D}${sbindir}/wlconf/
-	install -m 0755 wl18xx-conf-default.bin ${D}${sbindir}/wlconf/
-	install -m 0755 wl18xx-conf-default.bin ${D}/lib/firmware/ti-connectivity/wl18xx-conf.bin
-	install -m 0755 README ${D}${sbindir}/wlconf/
-	install -m 0755 example.conf ${D}${sbindir}/wlconf/
-	install -m 0755 example.ini ${D}${sbindir}/wlconf/
+	install -m 0644 dictionary.txt ${D}${sbindir}/wlconf/
+	install -m 0644 struct.bin ${D}${sbindir}/wlconf/
+	install -m 0644 default.conf ${D}${sbindir}/wlconf/
+	install -m 0644 wl18xx-conf-default.bin ${D}${sbindir}/wlconf/
+	install -m 0644 wl18xx-conf-default.bin ${D}/lib/firmware/ti-connectivity/wl18xx-conf.bin
+	install -m 0644 README ${D}${sbindir}/wlconf/
+	install -m 0644 example.conf ${D}${sbindir}/wlconf/
+	install -m 0644 example.ini ${D}${sbindir}/wlconf/
 	install -m 0755 configure-device.sh ${D}${sbindir}/wlconf/
-	install -m 0755 ${S}/official_inis/* \
+	install -m 0644 ${S}/official_inis/* \
 			${D}${sbindir}/wlconf/official_inis/
 }
 

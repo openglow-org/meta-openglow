@@ -27,10 +27,15 @@ IMAGE_INSTALL = " \
 	python3-gfutilities \
 	forgefirm-uenv \
 	libubootenv-bin \
-	watchdog \
 	wpa-supplicant \
 	wlconf \
 "
+
+# Deliberately NOT installed: the watchdog daemon. The hardware watchdog
+# is a boot/system watchdog (U-Boot arms it; the pinned imx2_wdt driver
+# adopts it and the kernel keeps it fed while /dev/watchdog is unopened).
+# A userspace petter adds only one failure mode here: a crashed daemon
+# resets the machine mid-job.
 
 create_dirs() {
 	mkdir -p ${IMAGE_ROOTFS}/data

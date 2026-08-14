@@ -39,7 +39,15 @@
 	};
 
 	chosen {
-		bootargs = "quiet console=ttymxc0,115200 root=/dev/mmcblk1p1 rw";
+		/*
+		 * Fallback only: U-Boot always overwrites bootargs from its
+		 * environment (mmcargs carries the real root=). No root= here -
+		 * a boot that ever fell through to this would stop at a visible
+		 * rootfs panic instead of silently booting a hardcoded slot -
+		 * and no quiet: the recovery ladder ends at the serial console,
+		 * which must show the early boot output.
+		 */
+		bootargs = "console=ttymxc0,115200";
 	};
 
 	/*
@@ -222,7 +230,7 @@
 		compatible = "glowforge,cnc";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_cnc>;
-		memory-region = <&cnc_reserved>; /* dedicated 128 MiB SDMA pulse ring */
+		memory-region = <&cnc_reserved>; /* dedicated 16 MiB SDMA pulse ring */
 		/* 40 V stepper rail, exclusive consumer (stepper power on/off).
 		 * Mandatory: without this mapping devm_regulator_get_exclusive()
 		 * returns -ENODEV on mainline. (The factory 3.14 kernel resolved

@@ -17,6 +17,18 @@
 # Remaining (image-level): in Scarthgap, fw_printenv/fw_setenv come from
 # libubootenv rather than u-boot-fw-utils — revisit
 # PREFERRED_PROVIDER_u-boot-fw-utils in glowforge.inc when the rootfs needs them.
+#
+# Security posture of the v2020.01 pin (deliberate, reviewed):
+# - Fielded machines run the FACTORY bootloader; ForgeFIRM installs and
+#   updates write only the rootfs slots and the U-Boot environment, never
+#   the bootloader. This build boots dev/recovery SD images.
+# - The pin is forced by the hardware-era board code (pre-driver-model,
+#   legacy IMX_CONFIG flow); forward-porting the board support is the
+#   only way off it.
+# - Every new upstream U-Boot CVE must be checked for applicability to
+#   v2020.01 and, when applicable, backported here — the SRC_URI:remove
+#   below drops a patch because it does not APPLY to this tree, not
+#   because the tree is exempt from review.
 
 require recipes-bsp/u-boot/u-boot-common.inc
 require recipes-bsp/u-boot/u-boot.inc
