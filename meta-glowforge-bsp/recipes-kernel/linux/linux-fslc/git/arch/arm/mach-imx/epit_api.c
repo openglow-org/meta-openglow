@@ -14,6 +14,7 @@
 #include <linux/device.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
+#include <linux/limits.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_platform.h>
@@ -133,7 +134,18 @@ EXPORT_SYMBOL(epit_init_oneshot);
 
 u32 epit_hz_to_divisor(struct epit *epit, u32 hz)
 {
-	return (hz) ? epit->rate/hz : 0;
+	u32 divisor;
+	/* A 0 Hz request must map to the slowest achievable tick, never a
+	 * fast one: EPITLR = 0 is degenerate under RLD with EPITCMPR = 0
+	 * (reload equals compare), i.e. the fastest rate the timer can
+	 * produce. The same degenerate value falls out of the integer
+	 * division for any hz above the clock rate, so clamp that side to
+	 * the fastest legal divisor instead. */
+	if (hz == 0) {
+		return U32_MAX;
+	}
+	divisor = epit->rate/hz;
+	return (divisor > 0) ? divisor : 1;
 }
 EXPORT_SYMBOL(epit_hz_to_divisor);
 
