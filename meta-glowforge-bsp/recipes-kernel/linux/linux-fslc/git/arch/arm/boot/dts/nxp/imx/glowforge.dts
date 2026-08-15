@@ -195,9 +195,13 @@
 			linux,code = <3>;
 			linux,input-type = <5>; /* EV_SW */
 		};
-		estop {
-			label = "estop";
-			gpios = <&gpio4 6 GPIO_ACTIVE_HIGH>;
+		/* Readback of the safety chain's HV_ENABLE output, through the
+		 * U24 inverter (the pin carries /HV_ENABLE, hence active-low).
+		 * Not an input: it is a monitor of what the chain decided.
+		 * The factory design calls this net E-STOP. */
+		hv_enable {
+			label = "hv_enable";
+			gpios = <&gpio4 6 GPIO_ACTIVE_LOW>;
 			debounce-interval = <5>;
 			linux,code = <4>;
 			linux,input-type = <5>; /* EV_SW */
@@ -735,7 +739,7 @@
 				MX6QDL_PAD_GPIO_6__GPIO1_IO06      0x100b0	/* !DOOR_SW2 */
 				MX6QDL_PAD_KEY_ROW1__GPIO4_IO09    0x100b0	/* !PAUSE (button pressed) */
 				MX6QDL_PAD_GPIO_0__GPIO1_IO00      0x100b0	/* !DOOR_SW */
-				MX6QDL_PAD_KEY_COL0__GPIO4_IO06    0x100b0	/* ESTOP */
+				MX6QDL_PAD_KEY_COL0__GPIO4_IO06    0x100b0	/* /HV_ENABLE readback (factory: ESTOP) */
 				MX6QDL_PAD_GPIO_9__GPIO1_IO09      0x100b0	/* INTERLOCK */
 				MX6QDL_PAD_GPIO_2__GPIO1_IO02      0x100b0	/* INTERLOCK_LATCH, no pulldown or pullup */
 				MX6QDL_PAD_EIM_D22__GPIO3_IO22     WEAK_PULLUP	/* HEAD_IRQ, pullup */
