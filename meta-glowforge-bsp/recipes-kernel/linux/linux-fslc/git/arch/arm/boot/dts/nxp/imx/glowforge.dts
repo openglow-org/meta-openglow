@@ -254,6 +254,7 @@
 		button-latch-gpio  = <&gpio1 3 0>;
 		laser-pgood-gpio   = <&gpio4 21 0>;
 		interlock-latch-reset-gpio = <&gpio4 5 0>;
+		charge-pump-alive-gpio = <&gpio1 8 0>;
 		x-mode1-gpio       = <&gpio3 1 0>;
 		y1-enable-gpio     = <&gpio3 2 0>;
 		x-mode2-gpio       = <&gpio3 3 0>;
@@ -627,6 +628,7 @@
 				MX6QDL_PAD_GPIO_5__GPIO1_IO05     WEAK_PULLUP	/* LASER_ON */
 				MX6QDL_PAD_GPIO_19__GPIO4_IO05    (PAD_CTL_HYS | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | MUX_MODE_SION)	/* INTERLOCK_LATCH_RESET, no pull, SION */
 				MX6QDL_PAD_DISP0_DAT0__GPIO4_IO21 (PAD_CTL_HYS | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm)	/* LASER_PGOOD, no pull */
+				MX6QDL_PAD_GPIO_8__GPIO1_IO08     (PAD_CTL_HYS | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm)	/* !CP_WD_ALIVE (inverted one-shot Q), no pull */
 			>;
 		};
 
