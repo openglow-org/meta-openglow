@@ -66,9 +66,15 @@
 	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm |   \
 	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
-#define USDHC_PAD_CTRL (PAD_CTL_PUS_47K_UP | \
-	PAD_CTL_SPEED_LOW | PAD_CTL_DSE_80ohm |	 \
-	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
+/*
+ * uSDHC pads, bit-exact with the factory device tree. Medium speed (100 MHz
+ * class), fast slew, hysteresis; 47k pull-up on CMD/DATA, no pull on CLK.
+ * eMMC and SD card drive at 80 ohm; the WL18xx SDIO bus drives at 48 ohm.
+ */
+#define USDHC_PAD_CTRL		0x17059
+#define USDHC_CLK_PAD_CTRL	0x10059
+#define USDHC_SDIO_PAD_CTRL	0x17069
+#define USDHC_SDIO_CLK_PAD_CTRL	0x10069
 
 #define I2C_PAD_CTRL	(PAD_CTL_PUS_100K_UP |			  \
 	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS | \
