@@ -5,7 +5,7 @@ LICENSE = "GPL-2.0-or-later"
 PV = "0.0.1"
 
 SRC_URI = "git://github.com/ScottW514/kernel-module-glowforge.git;protocol=https;branch=master"
-SRCREV = "015913bedb87b047588f2a242c9a37e05719b7f3"
+SRCREV = "d7507843f4fb4b7498aa9a52e4225ef5ff4756e8"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
 inherit module
