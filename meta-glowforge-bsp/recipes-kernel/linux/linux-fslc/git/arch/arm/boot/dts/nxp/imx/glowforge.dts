@@ -317,7 +317,7 @@
 	 * Replaces the factory v4l2_int_device ov5648_mipi driver with the mainline
 	 * ov5648 subdev + imx6 IPU/MIPI-CSI2 (imx-media) pipeline. The factory
 	 * CAM_SEL GPIO selects which sensor's MIPI CSI-2 stream reaches the shared
-	 * imx6-mipi-csi2 receiver; modelled with the mainline video-mux.
+	 * imx6-mipi-csi2 receiver; modeled with the mainline video-mux.
 	 *
 	 * Verified against the factory firmware DTB (imx6dl-glowforge-v20): the
 	 * sensor xvclk is a 24 MHz fixed oscillator; CSI-2 uses 2 data lanes;
@@ -325,7 +325,7 @@
 	 * active-low (default on); there are no per-sensor reset/powerdown GPIOs
 	 * (the rails are always-on and the sensors are gated via the mux OE). The
 	 * dvdd/dovdd/avdd fixed regulators below are not in the factory tree but the
-	 * mainline ov5648 driver requires them, so they are modelled always-on.
+	 * mainline ov5648 driver requires them, so they are modeled always-on.
 	 *
 	 * Both sensors are bound via a dual "ovti,ov8856","ovti,ov5648" compatible
 	 * (matching the factory DTB) so one image covers standard (5 MP OV5648) and
@@ -413,7 +413,7 @@
 	fsl,spi-num-chipselects = <1>;
 	/* PIC /CS is active-low. The 4.14 SPI core ignored the cs-gpios cell flag
 	 * and always treated GPIO chip-selects as active-low; since the gpiod
-	 * conversion (~v5.1) the core honours the flag, so an active-high cell (0)
+	 * conversion (~v5.1) the core honors the flag, so an active-high cell (0)
 	 * now drives CS the wrong way and the PIC reads back 0x0000. */
 	cs-gpios = <&gpio4 16 GPIO_ACTIVE_LOW>;
 	pinctrl-names = "default";

@@ -15,7 +15,7 @@ and forces fixed per-word bursts when a delay is requested so the wait-states
 land between words instead of inside a combined dynamic burst.
 
 Scoped to MACHINE=glowforge via the linux-fslc bbappend; only ecspi2 (the PIC)
-is used on this board, so the global driver behaviour change is inert elsewhere.
+is used on this board, so the global driver behavior change is inert elsewhere.
 
 Upstream-Status: Inappropriate [embedded specific]
 Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>

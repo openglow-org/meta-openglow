@@ -1,7 +1,7 @@
-SUMMARY = "A small collection of utilties to aid in firmware development for the Glowforge laser cutter."
+SUMMARY = "A small collection of utilities to aid in firmware development for the Glowforge laser cutter."
 
 LICENSE = "MIT"
-LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
+LIC_FILES_CHKSUM = "file://LICENSE;md5=934c9462b6bc6ddaa471e69ec7aa7b2b"
 
 BBCLASSEXTEND = "native nativesdk"
 
