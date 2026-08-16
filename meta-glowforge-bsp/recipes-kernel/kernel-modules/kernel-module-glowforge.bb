@@ -2,10 +2,11 @@ DESCRIPTION = "Glowforge Kernel Module"
 # Source headers grant "version 2 ... or (at your option) any later version".
 LICENSE = "GPL-2.0-or-later"
 
-PV = "0.0.1"
-
 SRC_URI = "git://github.com/ScottW514/kernel-module-glowforge.git;protocol=https;branch=master"
-SRCREV = "d7507843f4fb4b7498aa9a52e4225ef5ff4756e8"
+# SRCREV and PV live in the pin file (ForgeFIRM image manifest: *-pin.inc is
+# left out of the layer content hash, the component entry identifies the
+# source).
+require kernel-module-glowforge-pin.inc
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
 inherit module
