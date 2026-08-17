@@ -2,9 +2,9 @@
 # keep only SRCREV and PV here - the ForgeFIRM image manifest leaves
 # *-pin.inc out of the layer content hash because the component entry
 # already identifies the pinned source.
-SRCREV = "505c4c91d31004bcfcd05396c2bc59ea1df94ffa"
+SRCREV = "b86ef35218c4d0c4729a8ec64eb57f9c4e0a4e1a"
 
 # Bump PV with every SRCREV move so the git-hash-derived package version
 # stays monotonic (a lower short hash would otherwise trip the
 # version-going-backwards QA against the previous pin).
-PV = "0.9.7+git"
+PV = "0.9.8+git"
