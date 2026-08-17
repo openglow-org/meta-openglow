@@ -1,0 +1,177 @@
+media: ov8856: support a 24 MHz xvclk
+
+ForgeFIRM camera support for the 8 MP ("HD") Glowforge modules. The board's
+sensor oscillator is the same 24 MHz part both cameras run from, but the
+driver's register lists are written for a 19.2 MHz xvclk: it warns and then
+programs PLL multipliers that put the MIPI link 25% above the link frequency it
+publishes, so the CSI-2 receiver mis-times its D-PHY and the frame timing,
+pixel rate and exposure ranges the driver derives from OV8856_SCLK are all off
+by the same factor.
+
+Both PLL multipliers scale with the input clock, so every 19.2 MHz VCO has an
+exact 24 MHz equivalent: 0x0302/0x030d = 75 becomes 60, which is the value
+mainline's own 24 MHz-derived modes (3264x2448, 1632x1224) already use for
+PLL1. Carry that multiplier per link-frequency config and rewrite both
+registers after the mode list when the parsed clock-frequency is 24 MHz;
+19.2 MHz boards are untouched.
+
+Upstream-Status: Pending
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/drivers/media/i2c/ov8856.c
++++ b/drivers/media/i2c/ov8856.c
+@@ -20,9 +20,21 @@
+ 
+ #define OV8856_SCLK			144000000ULL
+ #define OV8856_XVCLK_19_2		19200000
++#define OV8856_XVCLK_24			24000000
+ #define OV8856_DATA_LANES		4
+ #define OV8856_RGB_DEPTH		10
+ 
++/*
++ * PLL multipliers. The register lists below assume a 19.2 MHz xvclk; on a
++ * 24 MHz board both PLLs are retuned at stream start by rewriting just these
++ * two registers (see ov8856_start_streaming).
++ */
++#define OV8856_REG_PLL1_MULT		0x0302
++#define OV8856_REG_PLL2_MULT		0x030d
++/* 24 MHz * 60 == 19.2 MHz * 75: the 1440 MHz VCO that puts SCLK at the
++ * 144 MHz OV8856_SCLK the HTS/exposure math assumes. */
++#define OV8856_PLL2_MULT_24		0x3c
++
+ #define OV8856_REG_CHIP_ID		0x300a
+ #define OV8856_CHIP_ID			0x00885a
+ 
+@@ -125,6 +137,13 @@
+ 
+ struct ov8856_link_freq_config {
+ 	const struct ov8856_reg_list reg_list;
++
++	/*
++	 * ForgeFIRM: the PLL1 multiplier (OV8856_REG_PLL1_MULT) that
++	 * reproduces this link frequency from a 24 MHz xvclk. The 19.2 MHz
++	 * value in reg_list scales by 19.2/24 = 4/5.
++	 */
++	u8 pll1_mult_24mhz;
+ };
+ 
+ struct ov8856_mode {
+@@ -1450,6 +1469,10 @@
+ 	 */
+ 	struct v4l2_mbus_config_mipi_csi2 bus_mipi_csi2;
+ 
++	/* ForgeFIRM: xvclk is 24 MHz, not the 19.2 MHz the register lists
++	 * were written for - retune the PLLs at stream start. */
++	bool xvclk_24mhz;
++
+ 	/* True if the device has been identified */
+ 	bool identified;
+ };
+@@ -1470,14 +1493,20 @@
+ 			.num_of_regs =
+ 			ARRAY_SIZE(mipi_data_rate_lane_2.regs_0),
+ 			.regs = mipi_data_rate_lane_2.regs_0,
+-		}
++		},
++		/* 0x43 (67) * 4/5 is not an integer; 54 is the nearest and
++		 * lands 0.7% high. This rate needs a >1 Gbps/lane receiver
++		 * either way. */
++		.pll1_mult_24mhz = 0x36,
+ 	},
+ 	{
+ 		.reg_list = {
+ 			.num_of_regs =
+ 			ARRAY_SIZE(mipi_data_rate_lane_2.regs_1),
+ 			.regs = mipi_data_rate_lane_2.regs_1,
+-		}
++		},
++		/* 0x4b (75) * 4/5 = 60, exact */
++		.pll1_mult_24mhz = 0x3c,
+ 	}},
+ 	{{
+ 		.width = 3280,
+@@ -1521,14 +1550,18 @@
+ 				.num_of_regs =
+ 				 ARRAY_SIZE(mipi_data_rate_lane_4.regs_0),
+ 				.regs = mipi_data_rate_lane_4.regs_0,
+-			}
++			},
++			/* 0x4b (75) * 4/5 = 60, exact */
++			.pll1_mult_24mhz = 0x3c,
+ 		},
+ 		{
+ 			.reg_list = {
+ 				.num_of_regs =
+ 				 ARRAY_SIZE(mipi_data_rate_lane_4.regs_1),
+ 				.regs = mipi_data_rate_lane_4.regs_1,
+-			}
++			},
++			/* same VCO, /4 instead of /2 (0x0303) */
++			.pll1_mult_24mhz = 0x3c,
+ 		}},
+ 		{{
+ 			.width = 3280,
+@@ -1986,6 +2019,7 @@
+ static int ov8856_start_streaming(struct ov8856 *ov8856)
+ {
+ 	struct i2c_client *client = v4l2_get_subdevdata(&ov8856->sd);
++	const struct ov8856_link_freq_config *freq_config;
+ 	const struct ov8856_reg_list *reg_list;
+ 	int link_freq_index, ret;
+ 
+@@ -1994,7 +2028,8 @@
+ 		return ret;
+ 
+ 	link_freq_index = ov8856->cur_mode->link_freq_index;
+-	reg_list = &ov8856->priv_lane->link_freq_configs[link_freq_index].reg_list;
++	freq_config = &ov8856->priv_lane->link_freq_configs[link_freq_index];
++	reg_list = &freq_config->reg_list;
+ 
+ 	ret = ov8856_write_reg_list(ov8856, reg_list);
+ 	if (ret) {
+@@ -2009,6 +2044,29 @@
+ 		return ret;
+ 	}
+ 
++	/*
++	 * ForgeFIRM: retune both PLL multipliers for a 24 MHz xvclk. This runs
++	 * after the mode list because some mode lists carry their own PLL1
++	 * multiplier. Nothing else in the rate/mode lists depends on the
++	 * xvclk rate.
++	 */
++	if (ov8856->xvclk_24mhz) {
++		const struct ov8856_reg pll_24mhz[] = {
++			{ OV8856_REG_PLL1_MULT, freq_config->pll1_mult_24mhz },
++			{ OV8856_REG_PLL2_MULT, OV8856_PLL2_MULT_24 },
++		};
++		const struct ov8856_reg_list pll_24mhz_list = {
++			.num_of_regs = ARRAY_SIZE(pll_24mhz),
++			.regs = pll_24mhz,
++		};
++
++		ret = ov8856_write_reg_list(ov8856, &pll_24mhz_list);
++		if (ret) {
++			dev_err(&client->dev, "failed to retune plls for 24 MHz");
++			return ret;
++		}
++	}
++
+ 	reg_list = &bayer_offset_configs[ov8856->cur_mbus_index];
+ 	ret = ov8856_write_reg_list(ov8856, reg_list);
+ 	if (ret) {
+@@ -2322,7 +2380,14 @@
+ 			return ret;
+ 	}
+ 
+-	if (xvclk_rate != OV8856_XVCLK_19_2)
++	/*
++	 * ForgeFIRM: 24 MHz boards are supported by retuning the PLL
++	 * multipliers at stream start (see ov8856_start_streaming); every
++	 * other rate is still only a warning, as before.
++	 */
++	ov8856->xvclk_24mhz = xvclk_rate == OV8856_XVCLK_24;
++
++	if (xvclk_rate != OV8856_XVCLK_19_2 && !ov8856->xvclk_24mhz)
+ 		dev_warn(dev, "external clock rate %u is unsupported",
+ 			 xvclk_rate);
+ 

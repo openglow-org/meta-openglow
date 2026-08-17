@@ -16,9 +16,13 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 # motion-path exposes, the spi-imx PIC inter-word delay (0004, re-derived from
 # the factory 4.14 "Add delay to SPI"), the SDMA live-feed hardening (0008),
 # the laser-PWM extra prescaler (0009, factory 1001 — the ~40 kHz laser
-# carrier; not audio-scoped), and the capture-queue cache-hint opt-in (0010,
-# lets forgectrl request CPU-cached capture buffers). Still deferred: the
-# audio buzzer driver.
+# carrier; not audio-scoped), the capture-queue cache-hint opt-in (0010,
+# lets forgectrl request CPU-cached capture buffers), and the three OV8856
+# changes the 8 MP "HD" camera modules need (0011 get_mbus_config, the same
+# gap 0006 closes for ov5648, 0012 the 24 MHz xvclk the board's sensor
+# oscillator runs at, and 0013 the 2-lane RAW8 modes that put full resolution
+# inside this SoC's 1 Gbps/lane CSI-2 receiver). Still deferred: the audio
+# buzzer driver.
 SRC_URI:append:glowforge = " \
     file://glowforge.cfg \
     file://git/ \
@@ -32,5 +36,8 @@ SRC_URI:append:glowforge = " \
     file://0008-imx-sdma-preallocate-glowforge-datamem-bounce.patch \
     file://0009-pwm-imx27-glowforge-extra-prescale.patch \
     file://0010-media-imx-capture-allow-cache-hints.patch \
+    file://0011-media-ov8856-implement-get_mbus_config.patch \
+    file://0012-media-ov8856-24mhz-xvclk.patch \
+    file://0013-media-ov8856-2-lane-raw8-modes.patch \
 "
 # (KERNEL_DEVICETREE = nxp/imx/glowforge.dtb is set in conf/machine/glowforge.conf.)

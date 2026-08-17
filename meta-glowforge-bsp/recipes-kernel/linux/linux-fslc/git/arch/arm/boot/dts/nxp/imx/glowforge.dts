@@ -84,8 +84,9 @@
 
 		/*
 		 * Reusable CMA for camera/IPU/VPU capture buffers (default area).
-		 * A 2592x1944 SBGGR8 frame is ~5 MiB; 64 MiB is ample for the
-		 * capture queues plus the VPU JPEG contexts.
+		 * A 2592x1944 SBGGR8 frame is ~5 MiB and an 8 MP machine's
+		 * 3264x2448 one is ~8 MiB, so the deepest capture queue is ~32 MiB;
+		 * 64 MiB leaves room for that plus the VPU JPEG contexts.
 		 */
 		linux,cma {
 			compatible = "shared-dma-pool";
@@ -318,7 +319,7 @@
 		pwm-names         = "intake-pwm", "exhaust-pwm";
 	};
 
-	/* ===== Cameras (lid + head OV5648 behind the CAM_SEL MIPI switch) =====
+	/* ===== Cameras (lid + head sensors behind the CAM_SEL MIPI switch) =====
 	 * Replaces the factory v4l2_int_device ov5648_mipi driver with the mainline
 	 * ov5648 subdev + imx6 IPU/MIPI-CSI2 (imx-media) pipeline. The factory
 	 * CAM_SEL GPIO selects which sensor's MIPI CSI-2 stream reaches the shared
@@ -334,15 +335,25 @@
 	 *
 	 * Both sensors are bound via a dual "ovti,ov8856","ovti,ov5648" compatible
 	 * (matching the factory DTB) so one image covers standard (5 MP OV5648) and
-	 * "HD" (8 MP OV8856) units; the driver that matches the chip-id wins. The
-	 * endpoint link-frequencies list is the union of both drivers' 2-lane menus.
+	 * "HD" (8 MP OV8856) units; the driver that matches the chip-id wins (the
+	 * other one's probe fails on the chip-id read and the device is offered to
+	 * the next matching driver).
 	 *
-	 * CAVEAT (OV8856 only): mainline ov8856 expects a 19.2 MHz xvclk and only
-	 * WARNS at our 24 MHz, so it will probe/bind but its PLL/mode tables (and
-	 * thus the real MIPI link rate) are calibrated for 19.2 MHz -> streaming on
-	 * an HD unit will need a 24 MHz PLL config added to the driver. OV5648
-	 * (5 MP) streams correctly at 24 MHz. Both still need runtime imx-media
-	 * graph validation (media-ctl + v4l2 capture).
+	 * The endpoint link-frequencies list must contain every entry of the bound
+	 * driver's menu for the lane count in use: ov8856_get_hwcfg rejects the
+	 * endpoint outright if any of its 2-lane menu {720, 360} MHz is missing,
+	 * while ov5648 only needs the rate a given mode actually uses. Hence the
+	 * four values below - ov5648 {210, 168} MHz plus ov8856 {720, 360} MHz.
+	 *
+	 * OV8856 note: the sensor's RAW10 full-resolution 2-lane mode runs the
+	 * link at 720 MHz (1.44 Gbps/lane) and the i.MX6 CSI-2 D-PHY tops out at
+	 * 1 Gbps/lane, so imx6-mipi-csi2 refuses to program it. Full resolution
+	 * is reached instead through the RAW8 3264x2448 mode, which carries the
+	 * frame at 360 MHz like the binned modes do; 720 MHz stays in the list
+	 * only because ov8856_get_hwcfg checks the whole 2-lane menu. The 24 MHz
+	 * xvclk (the board's oscillator, per the factory DTB) is handled by the
+	 * ov8856 PLL retune patch; without it the driver would run the link 25%
+	 * above the frequency it publishes.
 	 */
 	clk_cam_xvclk: clock-cam-xvclk {
 		compatible = "fixed-clock";
@@ -459,9 +470,9 @@
 				clock-lanes = <0>;
 				data-lanes = <1 2>;
 				bus-type = <4>; /* MEDIA_BUS_TYPE_CSI2_DPHY */
-				/* superset of both drivers' 2-lane menus:
-				 * ov5648 {210,168} + ov8856 {360,180} MHz */
-				link-frequencies = /bits/ 64 <168000000 180000000 210000000 360000000>;
+				/* union of both drivers' 2-lane menus:
+				 * ov5648 {210,168} + ov8856 {720,360} MHz */
+				link-frequencies = /bits/ 64 <168000000 210000000 360000000 720000000>;
 			};
 		};
 	};
@@ -513,9 +524,9 @@
 				clock-lanes = <0>;
 				data-lanes = <1 2>;
 				bus-type = <4>; /* MEDIA_BUS_TYPE_CSI2_DPHY */
-				/* superset of both drivers' 2-lane menus:
-				 * ov5648 {210,168} + ov8856 {360,180} MHz */
-				link-frequencies = /bits/ 64 <168000000 180000000 210000000 360000000>;
+				/* union of both drivers' 2-lane menus:
+				 * ov5648 {210,168} + ov8856 {720,360} MHz */
+				link-frequencies = /bits/ 64 <168000000 210000000 360000000 720000000>;
 			};
 		};
 	};

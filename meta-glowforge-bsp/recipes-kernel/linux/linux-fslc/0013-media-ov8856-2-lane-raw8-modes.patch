@@ -1,0 +1,351 @@
+media: ov8856: add 2-lane RAW8 3264x2448 and 1632x1224 modes
+
+The driver's only 2-lane full-resolution mode (3280x2464 RAW10) runs the link
+at 720 MHz, i.e. 1.44 Gbps/lane. A receiver that stops at 1 Gbps/lane - the
+i.MX6 CSI-2 D-PHY among them - cannot program that, so on a two-lane board the
+8 MP sensor is stuck at the binned 1640x1232 mode: the whole field of view, but
+a quarter of the pixels.
+
+Eight-bit readout costs a fifth of the bits per sample and lets the same frame
+travel at half the rate: 3264x2448 fits in the 360 MHz link (720 Mbps/lane)
+the binned mode already uses. The sensor supports it - 0x3031 selects the
+sample depth - and the register lists for both resolutions are already here as
+the 4-lane modes. Converting one to two lanes needs 0x3018 and twice the HTS,
+because half the lanes carry half a line in the same time; nothing else in
+those lists depends on lane count or sample depth.
+
+Carry those deltas per mode in a second register list written straight after
+the mode list, add MEDIA_BUS_FMT_SBGGR8_1X8 with the BGGR Bayer offset the
+RAW10 modes of these two resolutions already use, and make the sample depth a
+mode property so the pixel rate, h/vblank and exposure ranges derived from it
+follow the mode rather than a fixed 10. set_format and enum_frame_size pair a
+code with a mode only when their depths agree, so a RAW8 request cannot
+misdescribe a RAW10 mode or the other way round.
+
+At 180 Mpx/s the new modes run 15.0 fps and 30.9 fps.
+
+The values are the ones the factory Glowforge firmware programs on this
+hardware, which runs both resolutions over two lanes in RAW8 with the same
+0x3018/0x3031 and the same HTS/VTS pairs. It reaches them with a different PLL
+divider chain (0x0302=0x1e, 0x0303=0x03, 0x030f=0x07, 0x0312=0x05, and
+0x4837=0x58) that halves the link again to 180 MHz and the internal SCLK with
+it; that is a self-consistent alternative rather than a correction, and it is
+recorded here because it is the configuration to fall back to if the D-PHY
+does not lock at 720 Mbps/lane on real hardware.
+
+Upstream-Status: Pending
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/drivers/media/i2c/ov8856.c
++++ b/drivers/media/i2c/ov8856.c
+@@ -23,6 +23,12 @@
+ #define OV8856_XVCLK_24			24000000
+ #define OV8856_DATA_LANES		4
+ #define OV8856_RGB_DEPTH		10
++/*
++ * ForgeFIRM: bits per sample of the 2-lane RAW8 modes added below. Eight-bit
++ * readout halves the link rate a given frame size needs, which is what puts
++ * full resolution inside a 1 Gbps/lane CSI-2 receiver over two lanes.
++ */
++#define OV8856_RAW8_DEPTH		8
+ 
+ /*
+  * PLL multipliers. The register lists below assume a 19.2 MHz xvclk; on a
+@@ -123,6 +129,7 @@
+ enum {
+ 	OV8856_MEDIA_BUS_FMT_SBGGR10_1X10,
+ 	OV8856_MEDIA_BUS_FMT_SGRBG10_1X10,
++	OV8856_MEDIA_BUS_FMT_SBGGR8_1X8,
+ };
+ 
+ struct ov8856_reg {
+@@ -173,6 +180,19 @@
+ 
+ 	/* Default MEDIA_BUS_FMT for this mode */
+ 	u32 default_mbus_index;
++
++	/*
++	 * ForgeFIRM: bits per sample this mode's register list puts on the
++	 * CSI-2 bus. Every stock mode is RAW10; the RAW8 modes program
++	 * 0x3031 for 8-bit readout in extra_reg_list.
++	 */
++	u8 rgb_depth;
++
++	/*
++	 * ForgeFIRM: written straight after reg_list, for a mode that is a
++	 * stock register list plus a handful of deltas.
++	 */
++	const struct ov8856_reg_list extra_reg_list;
+ };
+ 
+ struct ov8856_mipi_data_rates {
+@@ -1408,9 +1428,44 @@
+ 	{0x3813, 0x01},
+ };
+ 
++/*
++ * ForgeFIRM: the deltas that turn the stock 4-lane RAW10 3264x2448 and
++ * 1632x1224 register lists into 2-lane RAW8 modes. Halving the lane count
++ * halves the pixels a line can carry, so HTS doubles; 0x3031 selects 8-bit
++ * readout, which halves it back. Everything else in those lists - crop,
++ * binning, Bayer phase, analog trim - is lane- and depth-independent.
++ *
++ * The factory Glowforge firmware runs these two resolutions over two lanes
++ * in RAW8 with the same 0x3018/0x3031 and the same HTS/VTS pairs, which is
++ * where the values come from.
++ */
++static const struct ov8856_reg lane_2_raw8_3264x2448_regs[] = {
++	{0x3018, 0x32},		/* two data lanes */
++	{0x3031, 0x08},		/* 8-bit output */
++	{0x380c, 0x0f},		/* HTS 3872 */
++	{0x380d, 0x20},
++};
++
++static const struct ov8856_reg lane_2_raw8_1632x1224_regs[] = {
++	{0x3018, 0x32},		/* two data lanes */
++	{0x3031, 0x08},		/* 8-bit output */
++	{0x380c, 0x0e},		/* HTS 3744 */
++	{0x380d, 0xa0},
++	{0x380e, 0x04},		/* VTS 1246 */
++	{0x380f, 0xde},
++};
++
+ static const u32 ov8856_mbus_codes[] = {
+ 	MEDIA_BUS_FMT_SBGGR10_1X10,
+-	MEDIA_BUS_FMT_SGRBG10_1X10
++	MEDIA_BUS_FMT_SGRBG10_1X10,
++	MEDIA_BUS_FMT_SBGGR8_1X8
++};
++
++/* ForgeFIRM: bits per sample of each ov8856_mbus_codes entry. */
++static const u8 ov8856_mbus_depths[] = {
++	OV8856_RGB_DEPTH,
++	OV8856_RGB_DEPTH,
++	OV8856_RAW8_DEPTH
+ };
+ 
+ static const char * const ov8856_test_pattern_menu[] = {
+@@ -1429,6 +1484,11 @@
+ 	[OV8856_MEDIA_BUS_FMT_SGRBG10_1X10] = {
+ 		.num_of_regs = ARRAY_SIZE(mipi_data_mbus_sgrbg10_1x10),
+ 		.regs = mipi_data_mbus_sgrbg10_1x10,
++	},
++	/* ForgeFIRM: RAW8 reads out in the same BGGR phase as SBGGR10. */
++	[OV8856_MEDIA_BUS_FMT_SBGGR8_1X8] = {
++		.num_of_regs = ARRAY_SIZE(mipi_data_mbus_sbggr10_1x10),
++		.regs = mipi_data_mbus_sbggr10_1x10,
+ 	}
+ };
+ 
+@@ -1522,6 +1582,7 @@
+ 		.link_freq_index = 0,
+ 		.data_lanes = 2,
+ 		.default_mbus_index = OV8856_MEDIA_BUS_FMT_SGRBG10_1X10,
++		.rgb_depth = OV8856_RGB_DEPTH,
+ 	},
+ 	{
+ 		.width = 1640,
+@@ -1537,6 +1598,56 @@
+ 		.link_freq_index = 1,
+ 		.data_lanes = 2,
+ 		.default_mbus_index = OV8856_MEDIA_BUS_FMT_SGRBG10_1X10,
++		.rgb_depth = OV8856_RGB_DEPTH,
++	},
++	/*
++	 * ForgeFIRM: RAW8 over two lanes. Both run the 360 MHz link
++	 * (720 Mbps/lane), so a receiver that tops out at 1 Gbps/lane can
++	 * reach full resolution - the RAW10 3280x2464 mode above needs
++	 * 1.44 Gbps/lane and cannot. hts/vts are the values extra_reg_list
++	 * programs; at 180 Mpx/s that is 15.0 fps and 30.9 fps.
++	 */
++	{
++		.width = 3264,
++		.height = 2448,
++		.hts = 3872,
++		.vts_def = 2482,
++		.vts_min = 2482,
++		.reg_list = {
++			.num_of_regs =
++			ARRAY_SIZE(lane_4_mode_3264x2448),
++			.regs = lane_4_mode_3264x2448,
++		},
++		.extra_reg_list = {
++			.num_of_regs =
++			ARRAY_SIZE(lane_2_raw8_3264x2448_regs),
++			.regs = lane_2_raw8_3264x2448_regs,
++		},
++		.link_freq_index = 1,
++		.data_lanes = 2,
++		.default_mbus_index = OV8856_MEDIA_BUS_FMT_SBGGR8_1X8,
++		.rgb_depth = OV8856_RAW8_DEPTH,
++	},
++	{
++		.width = 1632,
++		.height = 1224,
++		.hts = 3744,
++		.vts_def = 1246,
++		.vts_min = 1246,
++		.reg_list = {
++			.num_of_regs =
++			ARRAY_SIZE(lane_4_mode_1632x1224),
++			.regs = lane_4_mode_1632x1224,
++		},
++		.extra_reg_list = {
++			.num_of_regs =
++			ARRAY_SIZE(lane_2_raw8_1632x1224_regs),
++			.regs = lane_2_raw8_1632x1224_regs,
++		},
++		.link_freq_index = 1,
++		.data_lanes = 2,
++		.default_mbus_index = OV8856_MEDIA_BUS_FMT_SBGGR8_1X8,
++		.rgb_depth = OV8856_RAW8_DEPTH,
+ 	}}
+ };
+ 
+@@ -1577,6 +1688,7 @@
+ 			.link_freq_index = 0,
+ 			.data_lanes = 4,
+ 			.default_mbus_index = OV8856_MEDIA_BUS_FMT_SGRBG10_1X10,
++			.rgb_depth = OV8856_RGB_DEPTH,
+ 		},
+ 		{
+ 			.width = 1640,
+@@ -1592,6 +1704,7 @@
+ 			.link_freq_index = 1,
+ 			.data_lanes = 4,
+ 			.default_mbus_index = OV8856_MEDIA_BUS_FMT_SGRBG10_1X10,
++			.rgb_depth = OV8856_RGB_DEPTH,
+ 		},
+ 		{
+ 			.width = 3264,
+@@ -1607,6 +1720,7 @@
+ 			.link_freq_index = 0,
+ 			.data_lanes = 4,
+ 			.default_mbus_index = OV8856_MEDIA_BUS_FMT_SBGGR10_1X10,
++			.rgb_depth = OV8856_RGB_DEPTH,
+ 		},
+ 		{
+ 			.width = 1632,
+@@ -1622,6 +1736,7 @@
+ 			.link_freq_index = 1,
+ 			.data_lanes = 4,
+ 			.default_mbus_index = OV8856_MEDIA_BUS_FMT_SBGGR10_1X10,
++			.rgb_depth = OV8856_RGB_DEPTH,
+ 		}}
+ };
+ 
+@@ -1638,20 +1753,21 @@
+ 	return count;
+ }
+ 
++/* ForgeFIRM: depth is per-mode now that RAW8 modes exist. */
+ static u64 to_rate(const s64 *link_freq_menu_items,
+-		   u32 f_index, u8 nlanes)
++		   u32 f_index, u8 nlanes, u8 depth)
+ {
+ 	u64 pixel_rate = link_freq_menu_items[f_index] * 2 * nlanes;
+ 
+-	do_div(pixel_rate, OV8856_RGB_DEPTH);
++	do_div(pixel_rate, depth);
+ 
+ 	return pixel_rate;
+ }
+ 
+ static u64 to_pixels_per_line(const s64 *link_freq_menu_items, u32 hts,
+-			      u32 f_index, u8 nlanes)
++			      u32 f_index, u8 nlanes, u8 depth)
+ {
+-	u64 ppl = hts * to_rate(link_freq_menu_items, f_index, nlanes);
++	u64 ppl = hts * to_rate(link_freq_menu_items, f_index, nlanes, depth);
+ 
+ 	do_div(ppl, OV8856_SCLK);
+ 
+@@ -1949,10 +2065,12 @@
+ 				       V4L2_CID_PIXEL_RATE, 0,
+ 				       to_rate(ov8856->priv_lane->link_freq_menu_items,
+ 					       0,
+-					       ov8856->cur_mode->data_lanes), 1,
++					       ov8856->cur_mode->data_lanes,
++					       ov8856->cur_mode->rgb_depth), 1,
+ 				       to_rate(ov8856->priv_lane->link_freq_menu_items,
+ 					       0,
+-					       ov8856->cur_mode->data_lanes));
++					       ov8856->cur_mode->data_lanes,
++					       ov8856->cur_mode->rgb_depth));
+ 	ov8856->vblank = v4l2_ctrl_new_std(ctrl_hdlr, &ov8856_ctrl_ops,
+ 			  V4L2_CID_VBLANK,
+ 			  ov8856->cur_mode->vts_min - ov8856->cur_mode->height,
+@@ -1962,7 +2080,8 @@
+ 	h_blank = to_pixels_per_line(ov8856->priv_lane->link_freq_menu_items,
+ 				     ov8856->cur_mode->hts,
+ 				     ov8856->cur_mode->link_freq_index,
+-				     ov8856->cur_mode->data_lanes) -
++				     ov8856->cur_mode->data_lanes,
++				     ov8856->cur_mode->rgb_depth) -
+ 				     ov8856->cur_mode->width;
+ 	ov8856->hblank = v4l2_ctrl_new_std(ctrl_hdlr, &ov8856_ctrl_ops,
+ 					   V4L2_CID_HBLANK, h_blank, h_blank, 1,
+@@ -2009,7 +2128,13 @@
+ 	for (index = 0; index < ARRAY_SIZE(ov8856_mbus_codes); ++index)
+ 		if (ov8856_mbus_codes[index] == fmt->code)
+ 			break;
+-	if (index == ARRAY_SIZE(ov8856_mbus_codes))
++	/*
++	 * ForgeFIRM: a code whose sample depth this mode's register list does
++	 * not program would misdescribe the bus, so fall back to the mode's
++	 * own default rather than honoring it.
++	 */
++	if (index == ARRAY_SIZE(ov8856_mbus_codes) ||
++	    ov8856_mbus_depths[index] != mode->rgb_depth)
+ 		index = mode->default_mbus_index;
+ 	fmt->code = ov8856_mbus_codes[index];
+ 	ov8856->cur_mbus_index = index;
+@@ -2044,6 +2169,16 @@
+ 		return ret;
+ 	}
+ 
++	/* ForgeFIRM: the deltas a mode carries on top of a stock list. */
++	reg_list = &ov8856->cur_mode->extra_reg_list;
++	if (reg_list->num_of_regs) {
++		ret = ov8856_write_reg_list(ov8856, reg_list);
++		if (ret) {
++			dev_err(&client->dev, "failed to set mode deltas");
++			return ret;
++		}
++	}
++
+ 	/*
+ 	 * ForgeFIRM: retune both PLL multipliers for a 24 MHz xvclk. This runs
+ 	 * after the mode list because some mode lists carry their own PLL1
+@@ -2205,7 +2340,8 @@
+ 		__v4l2_ctrl_s_ctrl_int64(ov8856->pixel_rate,
+ 					 to_rate(ov8856->priv_lane->link_freq_menu_items,
+ 						 mode->link_freq_index,
+-						 ov8856->cur_mode->data_lanes));
++						 ov8856->cur_mode->data_lanes,
++						 mode->rgb_depth));
+ 
+ 		/* Update limits and set FPS to default */
+ 		vblank_def = mode->vts_def - mode->height;
+@@ -2217,7 +2353,8 @@
+ 		h_blank = to_pixels_per_line(ov8856->priv_lane->link_freq_menu_items,
+ 					     mode->hts,
+ 					     mode->link_freq_index,
+-					     ov8856->cur_mode->data_lanes)
++					     ov8856->cur_mode->data_lanes,
++					     mode->rgb_depth)
+ 					     - mode->width;
+ 		__v4l2_ctrl_modify_range(ov8856->hblank, h_blank, h_blank, 1,
+ 					 h_blank);
+@@ -2274,6 +2411,11 @@
+ 	if (index == ARRAY_SIZE(ov8856_mbus_codes))
+ 		return -EINVAL;
+ 
++	/* ForgeFIRM: only report sizes this code's sample depth is read at. */
++	if (ov8856_mbus_depths[index] !=
++	    ov8856->priv_lane->supported_modes[fse->index].rgb_depth)
++		return -EINVAL;
++
+ 	fse->min_width = ov8856->priv_lane->supported_modes[fse->index].width;
+ 	fse->max_width = fse->min_width;
+ 	fse->min_height = ov8856->priv_lane->supported_modes[fse->index].height;

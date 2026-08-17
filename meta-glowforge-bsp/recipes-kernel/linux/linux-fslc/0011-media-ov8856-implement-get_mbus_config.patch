@@ -1,0 +1,68 @@
+media: ov8856: implement get_mbus_config
+
+ForgeFIRM camera support for the 8 MP ("HD") Glowforge modules, which carry an
+OV8856 in place of the OV5648. The imx6 IPU-CSI determines whether its input is
+MIPI CSI-2 by calling get_mbus_config up the pipeline to the sensor (through the
+video-mux); ov8856 does not implement it, so the CSI cannot configure its CSI-2
+input and link-validate fails with -ENOIOCTLCMD. Report the bus type and lane
+count from the already-parsed DT endpoint, exactly as ov5648 does.
+
+Upstream-Status: Pending
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/drivers/media/i2c/ov8856.c
++++ b/drivers/media/i2c/ov8856.c
+@@ -1444,6 +1444,12 @@
+ 	const struct ov8856_lane_cfg *priv_lane;
+ 	u8 modes_size;
+ 
++	/*
++	 * ForgeFIRM: the parsed DT endpoint's CSI-2 configuration, kept so
++	 * get_mbus_config can report it (see ov8856_get_mbus_config).
++	 */
++	struct v4l2_mbus_config_mipi_csi2 bus_mipi_csi2;
++
+ 	/* True if the device has been identified */
+ 	bool identified;
+ };
+@@ -2230,6 +2236,22 @@
+ 	return 0;
+ }
+ 
++/*
++ * ForgeFIRM: report the CSI-2 bus config so the imx6 IPU-CSI can determine its
++ * input is MIPI CSI-2 (it walks get_mbus_config up through the video-mux to the
++ * sensor and hard-fails without it). Values come from the parsed DT endpoint.
++ */
++static int ov8856_get_mbus_config(struct v4l2_subdev *sd, unsigned int pad,
++				  struct v4l2_mbus_config *config)
++{
++	struct ov8856 *ov8856 = to_ov8856(sd);
++
++	config->type = V4L2_MBUS_CSI2_DPHY;
++	config->bus.mipi_csi2 = ov8856->bus_mipi_csi2;
++
++	return 0;
++}
++
+ static const struct v4l2_subdev_video_ops ov8856_video_ops = {
+ 	.s_stream = ov8856_set_stream,
+ };
+@@ -2239,6 +2261,7 @@
+ 	.get_fmt = ov8856_get_format,
+ 	.enum_mbus_code = ov8856_enum_mbus_code,
+ 	.enum_frame_size = ov8856_enum_frame_size,
++	.get_mbus_config = ov8856_get_mbus_config,
+ };
+ 
+ static const struct v4l2_subdev_ops ov8856_subdev_ops = {
+@@ -2323,6 +2346,9 @@
+ 
+ 	dev_dbg(dev, "Using %u data lanes\n", ov8856->cur_mode->data_lanes);
+ 
++	/* ForgeFIRM: kept for get_mbus_config (no allocated members). */
++	ov8856->bus_mipi_csi2 = bus_cfg.bus.mipi_csi2;
++
+ 	if (bus_cfg.bus.mipi_csi2.num_data_lanes == 2)
+ 		ov8856->priv_lane = &lane_cfg_2;
+ 	else
