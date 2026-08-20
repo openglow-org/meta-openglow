@@ -52,8 +52,8 @@
 
 	/*
 	 * Memory reserved for DMA: a dedicated pool for the cnc SDMA pulse ring
-	 * plus the default CMA for camera/IPU/VPU capture buffers - 80 MiB total
-	 * on the 512 MB SOM.
+	 * plus the default CMA for camera/IPU/VPU capture buffers - 96 MiB total
+	 * on the 512 MB SOM, leaving ~454 MiB to Linux.
 	 */
 	reserved-memory {
 		#address-cells = <1>;
@@ -72,14 +72,17 @@
 		 * Sizing: the grblHAL live feed keeps only a few KB in flight; legacy
 		 * cloud mode preloads a job's ENTIRE pulse file into the ring, so the
 		 * pool caps cloud-mode job length (~1 MiB per 100 s of 10 kHz
-		 * stream; 16 MiB = ~28 min). The module's ring_mb parameter must fit
-		 * this pool - raise both for longer cloud jobs.
+		 * stream; 32 MiB = ~56 min, matching the factory ring). The module's
+		 * ring_mb parameter must fit this pool - raise both for longer cloud
+		 * jobs. no-map means the whole pool leaves the kernel's memory map at
+		 * boot whether the ring uses it or not; on the 512 MB SOM that is
+		 * affordable and buys a deterministic allocation.
 		 */
 		cnc_reserved: cnc-pulsebuf {
 			compatible = "shared-dma-pool";
 			no-map;
-			size = <0x01000000>;      /* 16 MiB */
-			alignment = <0x01000000>; /* size-aligned base */
+			size = <0x02000000>;      /* 32 MiB */
+			alignment = <0x02000000>; /* size-aligned base */
 		};
 
 		/*
@@ -235,7 +238,7 @@
 		compatible = "glowforge,cnc";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_cnc>;
-		memory-region = <&cnc_reserved>; /* dedicated 16 MiB SDMA pulse ring */
+		memory-region = <&cnc_reserved>; /* dedicated SDMA pulse ring pool */
 		/* 40 V stepper rail, exclusive consumer (stepper power on/off).
 		 * Mandatory: without this mapping devm_regulator_get_exclusive()
 		 * returns -ENODEV on mainline. (The factory 3.14 kernel resolved
