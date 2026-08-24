@@ -1,7 +1,7 @@
 spi-imx: insert inter-word delay for the Glowforge sensor PIC
 
-ForgeFIRM motion/IO-path forward-port (Scarthgap migration #2). Re-derives the
-factory 4.14 "Add delay to SPI" change against linux-fslc 6.12 spi-imx.c.
+ForgeFIRM motion/IO path: the inter-word delay the factory kernel gives the
+sensor PIC, on mainline spi-imx.
 
 The Glowforge sensor PIC is a slow SPI slave: it needs settling time after the
 command word before it can present the response on the next word. Without it the

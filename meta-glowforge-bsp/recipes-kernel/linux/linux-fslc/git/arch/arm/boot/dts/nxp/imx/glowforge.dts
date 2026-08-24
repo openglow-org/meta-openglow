@@ -2,22 +2,16 @@
 /*
  * Glowforge Control Board: ForgeFIRM device tree for linux-fslc 6.12 (mainline).
  *
- * Forward-port of the factory 4.14 glowforge.dts (Scarthgap migration #2).
- *
- * FOUNDATION STAGE: this carries the bootable core plus the peripherals that
- * bind to in-tree mainline drivers: UART console, eMMC/SD, fixed regulators,
+ * The factory 4.14 glowforge.dts, carried onto mainline bindings. Peripherals
+ * that bind to in-tree drivers: UART console, eMMC/SD, fixed regulators,
  * gpio-leds / gpio-keys, the I2C sensors (st,lis2hh12 x3, national,lm75b), the
- * WL1805 SDIO wifi, and the fan/laser PWMs.
- *
- * Intentionally DEFERRED to later milestones (re-add with each driver port):
- *   - Camera  : fsl,imx6q-v4l2-capture / fsl,mxc_v4l2_output / &mipi_csi /
- *               ovti,ov5648_mipi{,_slave}  ->  mainline ov5648 + imx-media.
- * Motion path is wired up: &epit1/&epit2, glowforge,cnc/thermal/pic/head all
- * present below and bound by glowforge.ko (EPIT + SDMA-expose ported). Still
- * deferred: glowforge,imx-pwm-audio (audio buzzer driver only; the PWM
- * extra-prescale itself is NOT audio-scoped: the factory carried it on the
- * laser PWM, ported here as the 0009 patch + fsl,extra-prescale on &pwm2).
- * The original nodes remain in the 4.14 tree for reference while ported.
+ * WL1805 SDIO wifi, and the fan/laser PWMs. The motion path (&epit1/&epit2 and
+ * the glowforge,cnc/thermal/pic/head nodes) binds to glowforge.ko through the
+ * EPIT and SDMA layer patches; the laser PWM carries the factory
+ * fsl,extra-prescale (patch 0009). The cameras run on the mainline ov5648 /
+ * ov8856 subdevs behind video-mux, imx6-mipi-csi2 and imx-media, in place of
+ * the factory ov5648_mipi driver and mxc_v4l2 nodes. The factory
+ * glowforge,imx-pwm-audio buzzer node is not part of ForgeFIRM.
  *
  * Copyright (C) 2020-2026 Scott Wiederhold <s.e.wiederhold@gmail.com>
  * Copyright (C) 2015 Glowforge, Inc. <opensource@glowforge.com>

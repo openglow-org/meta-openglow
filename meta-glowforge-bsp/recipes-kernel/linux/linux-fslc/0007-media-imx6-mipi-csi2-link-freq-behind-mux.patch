@@ -1,6 +1,6 @@
 media: imx6-mipi-csi2: find LINK_FREQ on the sensor behind a mux
 
-ForgeFIRM camera bring-up (Scarthgap migration #2, milestone #5). csi2_dphy_init
+ForgeFIRM camera path. csi2_dphy_init
 reads V4L2_CID_LINK_FREQ from csi2->src_sd to pick the D-PHY hsfreqrange, but in
 the Glowforge dual-camera graph a video-mux sits between the sensor and this
 receiver, so src_sd (the mux) has no such control. It then falls back to the

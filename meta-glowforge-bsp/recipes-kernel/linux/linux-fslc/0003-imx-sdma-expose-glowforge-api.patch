@@ -1,10 +1,9 @@
 imx-sdma: expose Glowforge cnc step-stream API
 
-ForgeFIRM motion-path forward-port (Scarthgap migration #2). Exposes the
-channel-0 bootload path, external-event ownership, priority and a custom
-per-channel interrupt callback used by glowforge.ko, re-derived against
-linux-fslc 6.12 imx-sdma.c. Struct/prototype contract lives in the
-(re-created) include/linux/platform_data/dma-imx-sdma.h.
+ForgeFIRM motion path. Exposes the channel-0 bootload path,
+external-event ownership, priority and a custom per-channel interrupt
+callback used by glowforge.ko. The struct/prototype contract lives in
+include/linux/platform_data/dma-imx-sdma.h.
 
 Upstream-Status: Inappropriate [embedded specific]
 Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>

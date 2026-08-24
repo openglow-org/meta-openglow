@@ -1,10 +1,9 @@
 arm: mach-imx: add Glowforge EPIT API platform driver
 
-ForgeFIRM motion-path forward-port (Scarthgap migration #2). Builds
-epit_api.c (exposes EPIT1/EPIT2 to glowforge.ko) under a new
-CONFIG_MXC_EPIT_API. The 6.12 clk-imx6q.c / imx6qdl-clock.h already
-provide the EPIT gate clocks, so only the Kconfig/Makefile hooks are
-needed here (the 4.14 patch also added the clocks).
+ForgeFIRM motion path. Builds epit_api.c (exposes EPIT1/EPIT2 to
+glowforge.ko) under CONFIG_MXC_EPIT_API. clk-imx6q.c / imx6qdl-clock.h
+already provide the EPIT gate clocks, so only the Kconfig/Makefile hooks
+are needed here.
 
 Upstream-Status: Inappropriate [embedded specific]
 Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>

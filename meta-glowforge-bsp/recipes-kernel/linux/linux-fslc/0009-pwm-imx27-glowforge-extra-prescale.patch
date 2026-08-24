@@ -1,17 +1,16 @@
 pwm: imx27: support the Glowforge fsl,extra-prescale divider
 
-ForgeFIRM laser-power fix. The factory 4.14 tree carried
-fsl,extra-prescale = <13> on the laser PWM (via its 1001 patch): the
-glowforge.ko cnc engine programs a ~1925 ns period so the SDMA script
-can write raw 7-bit power levels straight into PWMSAR, and the extra
-prescaler stretches the actual output to ~25 us / ~40 kHz - the
-carrier the laser PSU expects - without changing the valid duty range.
-The 6.12 port dropped this (wrongly triaged as audio-only), leaving
-the laser PWM at ~520 kHz. There is no DT-only workaround: requesting
-25 us directly gives PWMPR ~1650 and caps the script's 7-bit writes at
-~8% duty.
+ForgeFIRM laser PWM. The factory kernel carries
+fsl,extra-prescale = <13> on the laser PWM: the glowforge.ko cnc engine
+programs a ~1925 ns period so the SDMA script can write raw 7-bit power
+levels straight into PWMSAR, and the extra prescaler stretches the
+actual output to ~25 us / ~40 kHz, the carrier the laser PSU expects,
+without changing the valid duty range. Mainline pwm-imx27 alone leaves
+the laser PWM at ~520 kHz, and there is no DT-only workaround:
+requesting 25 us directly gives PWMPR ~1650 and caps the script's 7-bit
+writes at ~8% duty.
 
-Re-derive against mainline pwm-imx27: multiply only the PWMCR
+On mainline pwm-imx27: multiply only the PWMCR
 prescaler field after the period/duty counts are computed (PWMPR and
 the SAR range are unaffected), bounds-check the field, read the
 property at probe (default 1 - no behavior change for other users).

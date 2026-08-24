@@ -1,7 +1,7 @@
 arm: dts: imx: register the Glowforge board device tree
 
-ForgeFIRM forward-port (Scarthgap migration #2): build glowforge.dtb from
-the overlaid arch/arm/boot/dts/nxp/imx/glowforge.dts.
+ForgeFIRM: build glowforge.dtb from the overlaid
+arch/arm/boot/dts/nxp/imx/glowforge.dts.
 
 Upstream-Status: Inappropriate [embedded specific]
 Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>

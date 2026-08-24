@@ -1,6 +1,6 @@
 media: video-mux: forward get_mbus_config to the active sensor
 
-ForgeFIRM camera bring-up (Scarthgap migration #2, milestone #5). In the
+ForgeFIRM camera path. In the
 Glowforge dual-camera graph the two OV5648 sensors are muxed at the CSI-2 level
 by this video-mux ahead of the single imx6-mipi-csi2 receiver. The imx6 IPU-CSI
 (imx-media-csi.c:csi_get_upstream_mbus_config) walks up to the entity feeding the
@@ -19,8 +19,8 @@ Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
  
 +/*
 + * ForgeFIRM: forward get_mbus_config to the active upstream sensor. The imx6
-+ * IPU-CSI (imx-media-csi.c) walks up to the entity feeding the CSI-2 receiver —
-+ * which in the Glowforge dual-camera graph is this mux — and hard-fails
++ * IPU-CSI (imx-media-csi.c) walks up to the entity feeding the CSI-2 receiver,
++ * which in the Glowforge dual-camera graph is this mux, and hard-fails
 + * link-validate if it cannot read the bus config. Pass the query through to
 + * whichever sensor is currently selected.
 + */

@@ -1,11 +1,12 @@
-# ForgeFIRM: carry the Glowforge factory-board kernel support onto linux-fslc 6.12.
+# ForgeFIRM: the Glowforge factory board on linux-fslc 6.12 (mainline).
 #
-# This is the forward-port landing zone for Scarthgap migration #2. The factory
-# board ran the NXP vendor kernel (linux-imx 4.14.98) with seven out-of-tree
-# changes (PWM prescaler, EPIT API, SDMA-expose, OV5648, SPI delay, LIS2HH12,
-# bus-freq-disable). linux-fslc 6.12 is mainline-tracking, so each is re-derived
-# against 6.12 here rather than applied as the old 4.14 patch. See kas/README.md
-# backlog #2 for the per-item plan and status.
+# The factory board runs an NXP vendor kernel (linux-imx 4.14.98) with a set of
+# out-of-tree changes. Each one the board needs is re-derived against mainline
+# 6.12 as a patch below, never applied as the old 4.14 patch; the ones mainline
+# already covers (the OV5648 sensor, the LIS2HH12 accelerometer) bind to in-tree
+# drivers, and the bus-frequency scaling disable has no mainline counterpart to
+# disable. The config fragment names the board's kernel; the device tree and
+# its patches are described in place.
 #
 # Scoped to MACHINE=glowforge so other boards building linux-fslc are unaffected.
 
@@ -15,14 +16,14 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 # file://git/) + the Makefile hook that registers glowforge.dtb, the EPIT/SDMA
 # motion-path exposes, the spi-imx PIC inter-word delay (0004, re-derived from
 # the factory 4.14 "Add delay to SPI"), the SDMA live-feed hardening (0008),
-# the laser-PWM extra prescaler (0009, factory 1001 — the ~40 kHz laser
+# the laser-PWM extra prescaler (0009, factory 1001: the ~40 kHz laser
 # carrier; not audio-scoped), the capture-queue cache-hint opt-in (0010,
 # lets forgectrl request CPU-cached capture buffers), and the three OV8856
 # changes the 8 MP "HD" camera modules need (0011 get_mbus_config, the same
 # gap 0006 closes for ov5648, 0012 the 24 MHz xvclk the board's sensor
 # oscillator runs at, and 0013 the 2-lane RAW8 modes that put full resolution
-# inside this SoC's 1 Gbps/lane CSI-2 receiver). Still deferred: the audio
-# buzzer driver.
+# inside this SoC's 1 Gbps/lane CSI-2 receiver). The factory audio buzzer
+# driver is not part of ForgeFIRM.
 SRC_URI:append:glowforge = " \
     file://glowforge.cfg \
     file://git/ \

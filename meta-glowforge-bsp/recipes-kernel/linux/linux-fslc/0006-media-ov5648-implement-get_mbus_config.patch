@@ -1,6 +1,6 @@
 media: ov5648: implement get_mbus_config
 
-ForgeFIRM camera bring-up (Scarthgap migration #2, milestone #5). The imx6
+ForgeFIRM camera path. The imx6
 IPU-CSI determines whether its input is MIPI CSI-2 by calling get_mbus_config up
 the pipeline to the sensor (through the video-mux). ov5648 did not implement it,
 so the CSI could not configure its CSI-2 input and link-validate failed. Report
