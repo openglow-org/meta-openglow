@@ -24,8 +24,9 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 # oscillator runs at, and 0013 the 2-lane RAW8 modes that put full resolution
 # inside this SoC's 1 Gbps/lane CSI-2 receiver), and the spi-imx quiet
 # fallback to PIO when a controller describes no DMA channels (0014; the PIC's
-# ecspi2 has none on purpose). The factory audio buzzer driver is not part of
-# ForgeFIRM.
+# ecspi2 has none on purpose), and wlcore asking for its optional NVS file
+# without a loader warning (0015; the rootfs ships none, the MAC is fused).
+# The factory audio buzzer driver is not part of ForgeFIRM.
 SRC_URI:append:glowforge = " \
     file://glowforge.cfg \
     file://git/ \
@@ -43,5 +44,6 @@ SRC_URI:append:glowforge = " \
     file://0012-media-ov8856-24mhz-xvclk.patch \
     file://0013-media-ov8856-2-lane-raw8-modes.patch \
     file://0014-spi-imx-no-dma-described-is-not-an-error.patch \
+    file://0015-wlcore-nvs-is-optional-request-it-without-a-warning.patch \
 "
 # (KERNEL_DEVICETREE = nxp/imx/glowforge.dtb is set in conf/machine/glowforge.conf.)
