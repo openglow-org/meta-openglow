@@ -100,7 +100,7 @@ Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
  
  	ret = dma_async_device_register(&sdma->dma_device);
  	if (ret) {
-@@ -2444,6 +2452,246 @@
+@@ -2444,6 +2452,268 @@
  	.probe		= sdma_probe,
  };
  
@@ -135,13 +135,35 @@ Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
 +}
 +EXPORT_SYMBOL(sdma_engine_get);
 +
++/* A channel taken here is driven outside dmaengine's allocator, so it must
++ * hold the engine's ipg/ahb clocks the way sdma_alloc_chan_resources() does
++ * for a dmaengine client: probe leaves them disabled, and with the block
++ * gated every channel-0 transfer (script load, context load and fetch)
++ * completes at once and moves nothing. Released by sdma_put_channel(). */
 +struct sdma_channel *sdma_get_channel(struct sdma_engine *sdma, int channel)
 +{
++	int ret;
++
 +	if (channel < 0 || channel >= MAX_DMA_CHANNELS)
 +		return NULL;
++	ret = clk_enable(sdma->clk_ipg);
++	if (ret)
++		return NULL;
++	ret = clk_enable(sdma->clk_ahb);
++	if (ret) {
++		clk_disable(sdma->clk_ipg);
++		return NULL;
++	}
 +	return &sdma->channel[channel];
 +}
 +EXPORT_SYMBOL(sdma_get_channel);
++
++void sdma_put_channel(struct sdma_channel *sdmac)
++{
++	clk_disable(sdmac->sdma->clk_ahb);
++	clk_disable(sdmac->sdma->clk_ipg);
++}
++EXPORT_SYMBOL(sdma_put_channel);
 +
 +int sdma_write_datamem(struct sdma_engine *sdma, void *buf, int size, u32 address)
 +{

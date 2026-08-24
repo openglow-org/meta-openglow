@@ -84,6 +84,7 @@ struct sdma_channel;
 
 struct sdma_engine *sdma_engine_get(void);
 struct sdma_channel *sdma_get_channel(struct sdma_engine *sdma, int channel);
+void sdma_put_channel(struct sdma_channel *sdmac);
 void sdma_setup_channel(struct sdma_channel *sdmac, bool external);
 void sdma_event_enable(struct sdma_channel *sdmac, unsigned int event);
 void sdma_event_disable(struct sdma_channel *sdmac, unsigned int event);

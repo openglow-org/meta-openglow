@@ -455,7 +455,9 @@
 	 * from 64 bytes up; without the SoC's dmas the controller holds no SDMA
 	 * channels and the pulse ring stays the SDMA's only client, which the
 	 * step-timing margin assumes. (ECSPI TX DMA would also need a RAM SDMA
-	 * script the image does not ship.) */
+	 * script the image does not ship.) The engine's ipg/ahb clocks are then
+	 * held by glowforge.ko alone (sdma_get_channel in the SDMA API patch);
+	 * no other client keeps them on. */
 	/delete-property/ dmas;
 	/delete-property/ dma-names;
 	status = "okay";
