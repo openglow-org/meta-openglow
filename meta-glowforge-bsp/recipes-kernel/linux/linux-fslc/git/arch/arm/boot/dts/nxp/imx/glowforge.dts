@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Glowforge Control Board — ForgeFIRM device tree for linux-fslc 6.12 (mainline).
+ * Glowforge Control Board: ForgeFIRM device tree for linux-fslc 6.12 (mainline).
  *
  * Forward-port of the factory 4.14 glowforge.dts (Scarthgap migration #2).
  *
- * FOUNDATION STAGE — this carries the bootable core plus the peripherals that
+ * FOUNDATION STAGE: this carries the bootable core plus the peripherals that
  * bind to in-tree mainline drivers: UART console, eMMC/SD, fixed regulators,
  * gpio-leds / gpio-keys, the I2C sensors (st,lis2hh12 x3, national,lm75b), the
  * WL1805 SDIO wifi, and the fan/laser PWMs.
@@ -14,7 +14,7 @@
  *               ovti,ov5648_mipi{,_slave}  ->  mainline ov5648 + imx-media.
  * Motion path is wired up: &epit1/&epit2, glowforge,cnc/thermal/pic/head all
  * present below and bound by glowforge.ko (EPIT + SDMA-expose ported). Still
- * deferred: glowforge,imx-pwm-audio (audio buzzer driver only — the PWM
+ * deferred: glowforge,imx-pwm-audio (audio buzzer driver only; the PWM
  * extra-prescale itself is NOT audio-scoped: the factory carried it on the
  * laser PWM, ported here as the 0009 patch + fsl,extra-prescale on &pwm2).
  * The original nodes remain in the 4.14 tree for reference while ported.
@@ -96,6 +96,26 @@
 			reusable;
 			size = <0x04000000>;      /* 64 MiB */
 			linux,cma-default;
+		};
+
+		/*
+		 * Crash record (pstore/ramoops). PANIC_ON_OOPS plus the ten-second
+		 * panic timeout reboot the machine after any oops; the oops text
+		 * and the last 256 KiB of console survive here and come back on the
+		 * next boot under /sys/fs/pstore. The region is the 1 MiB at the top
+		 * of DRAM that the bootloader already holds back from the memory
+		 * node (its pstore_addr/pstore_size), so it costs no Linux memory;
+		 * no-map keeps it out of the kernel map and pstore maps it uncached.
+		 * 32 KiB dump records with 16-byte ECC blocks, so a torn record is
+		 * detected instead of trusted.
+		 */
+		ramoops@2ff00000 {
+			compatible = "ramoops";
+			reg = <0x2ff00000 0x100000>;
+			no-map;
+			record-size = <0x8000>;
+			console-size = <0x40000>;
+			ecc-size = <16>;
 		};
 	};
 
@@ -243,7 +263,7 @@
 		 * Mandatory: without this mapping devm_regulator_get_exclusive()
 		 * returns -ENODEV on mainline. (The factory 3.14 kernel resolved
 		 * the bare name "40v" via the regulator core's lookup-by-name
-		 * fallback, which mainline later removed — the factory DTB has no
+		 * fallback, which mainline later removed; the factory DTB has no
 		 * 40v-supply property either.) */
 		40v-supply         = <&reg_40v>;
 		latch-reset-gpio   = <&gpio1 7 0>; /* BUTTON_LATCH_RST */
@@ -291,17 +311,17 @@
 		pwm-names          = "laser-pwm";
 		timer              = <&epit1>;
 		/* SDMA channel 26; script origin 0xF00 (32-bit words) = halfword
-		 * 7680. The factory used 0xe00 (halfword 7168), which the current
-		 * NXP sdma-imx6q.bin RAM firmware (v3.6: halfwords 6144-7520) now
-		 * overlaps — whichever loaded last silently corrupted the other.
-		 * SDMA RAM spans halfwords 4096-8191 (8 KB; IMX6SDLRM SDMA memory
-		 * map: RAM = words 0x0800-0x0FFF), so the script at 7680-7819 clears
-		 * the firmware with 372 halfwords of RAM headroom left above it.
-		 * glowforge.ko additionally verifies/reloads the script before every
-		 * run. Note the RAM firmware does not actually load in this image:
-		 * the built-in imx-sdma probes before the rootfs is mounted and falls
-		 * back to the ROM scripts, so the overlap is latent — an initramfs or
-		 * a modular imx-sdma would arm it. */
+		 * 7680. The factory used 0xe00 (halfword 7168), which the NXP
+		 * sdma-imx6q.bin RAM firmware (v3.6: halfwords 6144-7520) overlaps;
+		 * whichever loaded last would silently corrupt the other. SDMA RAM
+		 * spans halfwords 4096-8191 (8 KB; IMX6SDLRM SDMA memory map: RAM =
+		 * words 0x0800-0x0FFF), so the script at 7680-7819 clears that
+		 * firmware with 372 halfwords of RAM headroom left above it, and
+		 * glowforge.ko verifies/reloads the script before every run. The
+		 * engine runs its ROM scripts by design: the built-in imx-sdma probes
+		 * before the rootfs is mounted, every SDMA client on this board uses
+		 * ROM scripts (the pulse script is the module's own), and the image
+		 * ships no SDMA RAM firmware. */
 		sdma-params        = <26 0xF00>;
 	};
 
@@ -437,6 +457,13 @@
 	cs-gpios = <&gpio4 16 GPIO_ACTIVE_LOW>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi2>;
+	/* PIO only. The PIC transactions are 3 bytes and spi-imx would use DMA
+	 * from 64 bytes up; without the SoC's dmas the controller holds no SDMA
+	 * channels and the pulse ring stays the SDMA's only client, which the
+	 * step-timing margin assumes. (ECSPI TX DMA would also need a RAM SDMA
+	 * script the image does not ship.) */
+	/delete-property/ dmas;
+	/delete-property/ dma-names;
 	status = "okay";
 
 	/* PIC sensor MCU (glowforge,pic -> glowforge.ko) */
@@ -780,7 +807,7 @@
 	/* LASER_PWM carrier: glowforge.ko programs a ~1925 ns period so the
 	 * SDMA script can write raw 7-bit power levels straight into PWMSAR;
 	 * the extra prescaler (0009 patch, factory 1001 mechanism) stretches
-	 * the output to ~25 us ≈ 40 kHz — the carrier the laser PSU expects —
+	 * the output to ~25 us, about 40 kHz, the carrier the laser PSU expects,
 	 * without changing the valid duty range. NOT audio-related: the factory
 	 * 4.14 tree carried this exact property on the laser PWM. */
 	fsl,extra-prescale = <13>;
@@ -850,7 +877,7 @@
 };
 
 /*
- * EPIT timers — motion path. imx6qdl.dtsi defines the epit1/epit2 nodes
+ * EPIT timers: motion path. imx6qdl.dtsi defines the epit1/epit2 nodes
  * (reg + interrupts) but no compatible; bind them to the ForgeFIRM EPIT API
  * driver (CONFIG_MXC_EPIT_API). These clock the SDMA step-stream playback.
  */
@@ -873,7 +900,7 @@
 	status = "okay";
 };
 
-/* MIPI CSI-2 receiver — input is the video-mux output (selected lid/head). */
+/* MIPI CSI-2 receiver: input is the video-mux output (selected lid/head). */
 &mipi_csi {
 	status = "okay";
 
@@ -887,3 +914,33 @@
 	};
 };
 /* (imx6dl.dtsi already wires mipi_csi virtual channels -> the IPU CSI muxes.) */
+
+/*
+ * SoC blocks the dtsi leaves enabled that this board does not use. No USB
+ * controller is enabled, so the two USB PHYs, their dummy regulators, and
+ * usbmisc have nothing to serve; the audio sample-rate converter has no
+ * audio path behind it.
+ */
+&asrc {
+	status = "disabled";
+};
+
+&usbphy1 {
+	status = "disabled";
+};
+
+&usbphy2 {
+	status = "disabled";
+};
+
+&usbphynop1 {
+	status = "disabled";
+};
+
+&usbphynop2 {
+	status = "disabled";
+};
+
+&usbmisc {
+	status = "disabled";
+};

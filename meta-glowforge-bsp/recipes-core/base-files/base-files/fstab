@@ -6,3 +6,4 @@ tmpfs                /var/volatile        tmpfs      defaults              0  0
 /dev/mmcblk2p3       /data                auto       defaults              0  0
 /dev/mmcblk2p1       /factory/img1        auto       ro,noatime            0  0
 /dev/mmcblk2p2       /factory/img2        auto       ro,noatime            0  0
+pstore               /sys/fs/pstore       pstore     defaults              0  0
