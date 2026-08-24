@@ -2,5 +2,5 @@
 # changes; keep only SRCREV and PV here - the ForgeFIRM image manifest
 # leaves *-pin.inc out of the layer content hash because the component
 # entry already identifies the pinned source.
-SRCREV = "3a9f045ef9e6bacefb386e64cb5ab23414adb328"
+SRCREV = "615a36f123a411f19582c37a0713ca3e1bf8191d"
 PV = "0.0.1"
