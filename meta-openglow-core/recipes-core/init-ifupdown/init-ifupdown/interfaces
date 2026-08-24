@@ -15,3 +15,10 @@ iface wlan0 inet dhcp
 	# wireless_mode/wireless_essid directives are dropped.
 	wpa-driver nl80211
 	wpa-conf /data/etc/wpa_supplicant.conf
+
+# IPv6 on the same link: the kernel takes the router advertisement (prefix
+# routes, default route, SLAAC addresses) on its own; udhcpc6 adds the
+# address a stateful DHCPv6 server assigns, applied by its hook script.
+iface wlan0 inet6 manual
+	up udhcpc6 -i wlan0 -b -S -p /run/udhcpc6.wlan0.pid
+	down [ -f /run/udhcpc6.wlan0.pid ] && kill $(cat /run/udhcpc6.wlan0.pid) || true

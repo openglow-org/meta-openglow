@@ -1,0 +1,35 @@
+spi-imx: a controller without DMA channels is not an error
+
+A controller whose device-tree node carries no dmas runs PIO, which is
+how the Glowforge sensor PIC's ecspi2 is described on purpose (3-byte
+transactions; the pulse ring stays the SDMA's only client).
+dma_request_chan() answers -ENODEV for the missing description and the
+probe logged it at ERR level at every boot before falling back to PIO.
+Keep the message for real failures; stay quiet when no channel is
+described.
+
+Upstream-Status: Pending
+Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
+
+--- a/drivers/spi/spi-imx.c
++++ b/drivers/spi/spi-imx.c
+@@ -1382,7 +1382,8 @@ static int spi_imx_sdma_init(struct device *dev, struct spi_imx_data *spi_imx,
+ 	controller->dma_tx = dma_request_chan(dev, "tx");
+ 	if (IS_ERR(controller->dma_tx)) {
+ 		ret = PTR_ERR(controller->dma_tx);
+-		dev_err_probe(dev, ret, "can't get the TX DMA channel!\n");
++		if (ret != -ENODEV)
++			dev_err_probe(dev, ret, "can't get the TX DMA channel!\n");
+ 		controller->dma_tx = NULL;
+ 		goto err;
+ 	}
+@@ -1391,7 +1392,8 @@ static int spi_imx_sdma_init(struct device *dev, struct spi_imx_data *spi_imx,
+ 	controller->dma_rx = dma_request_chan(dev, "rx");
+ 	if (IS_ERR(controller->dma_rx)) {
+ 		ret = PTR_ERR(controller->dma_rx);
+-		dev_err_probe(dev, ret, "can't get the RX DMA channel!\n");
++		if (ret != -ENODEV)
++			dev_err_probe(dev, ret, "can't get the RX DMA channel!\n");
+ 		controller->dma_rx = NULL;
+ 		goto err;
+ 	}

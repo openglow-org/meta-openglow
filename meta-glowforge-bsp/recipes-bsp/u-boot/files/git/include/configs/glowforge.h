@@ -141,7 +141,7 @@
   "mmchwpart=" __stringify(GF_MMCHWPART) "\0" \
   "mmcpart=" __stringify(GF_MMCPART) "\0" \
   "mmcroot=" GF_MMCROOT "\0" \
-  "mmcargs=setenv bootargs console=${console},${baudrate} consoleblank=0 " \
+  "mmcargs=setenv bootargs console=${console},${baudrate} " \
     "root=${mmcroot} rw quiet" PSTORE_ARGS "\0" \
   "loadbootscript=" \
     "load mmc ${mmcdev}.${mmchwpart}:${mmcpart} ${loadaddr} ${bootdir}/${script};\0" \

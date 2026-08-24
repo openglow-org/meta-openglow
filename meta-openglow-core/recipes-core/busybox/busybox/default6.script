@@ -1,0 +1,20 @@
+#!/bin/sh
+# udhcpc6 hook: apply a DHCPv6 lease to the interface. The router
+# advertisement owns the prefix routes, default route and SLAAC addresses;
+# this script only adds the address the DHCPv6 server hands out, with the
+# lease as its lifetime so an expired lease ages out on its own. DNS stays
+# with the IPv4 lease (udhcpc's script writes resolv.conf).
+[ -n "$1" ] || exit 1
+
+case "$1" in
+    bound|renew)
+        [ -n "$ipv6" ] || exit 0
+        lft="${lease:-forever}"
+        ip -6 addr replace "$ipv6/128" dev "$interface" \
+            valid_lft "$lft" preferred_lft "$lft"
+        ;;
+    deconfig)
+        # Nothing to undo: the address carries the lease lifetime.
+        ;;
+esac
+exit 0

@@ -22,8 +22,10 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 # changes the 8 MP "HD" camera modules need (0011 get_mbus_config, the same
 # gap 0006 closes for ov5648, 0012 the 24 MHz xvclk the board's sensor
 # oscillator runs at, and 0013 the 2-lane RAW8 modes that put full resolution
-# inside this SoC's 1 Gbps/lane CSI-2 receiver). The factory audio buzzer
-# driver is not part of ForgeFIRM.
+# inside this SoC's 1 Gbps/lane CSI-2 receiver), and the spi-imx quiet
+# fallback to PIO when a controller describes no DMA channels (0014; the PIC's
+# ecspi2 has none on purpose). The factory audio buzzer driver is not part of
+# ForgeFIRM.
 SRC_URI:append:glowforge = " \
     file://glowforge.cfg \
     file://git/ \
@@ -40,5 +42,6 @@ SRC_URI:append:glowforge = " \
     file://0011-media-ov8856-implement-get_mbus_config.patch \
     file://0012-media-ov8856-24mhz-xvclk.patch \
     file://0013-media-ov8856-2-lane-raw8-modes.patch \
+    file://0014-spi-imx-no-dma-described-is-not-an-error.patch \
 "
 # (KERNEL_DEVICETREE = nxp/imx/glowforge.dtb is set in conf/machine/glowforge.conf.)
