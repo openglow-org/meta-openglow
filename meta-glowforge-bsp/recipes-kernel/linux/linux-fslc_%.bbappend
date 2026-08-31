@@ -46,4 +46,12 @@ SRC_URI:append:glowforge = " \
     file://0014-spi-imx-no-dma-described-is-not-an-error.patch \
     file://0015-wlcore-nvs-is-optional-request-it-without-a-warning.patch \
 "
+
+# Debug kernel (item: debug-kernel checks). The lock-correctness fragment
+# is added only when FORGEFIRM_KERNEL_DEBUG = "1" (the kas debug variant),
+# so a release or a normal dev build carries none of its runtime cost. A
+# one-time drill image boots this to run the module load/unload and
+# forced-defer drills, then the real image is flashed.
+SRC_URI:append:glowforge = "${@' file://glowforge-debug.cfg' if d.getVar('FORGEFIRM_KERNEL_DEBUG') == '1' else ''}"
+
 # (KERNEL_DEVICETREE = nxp/imx/glowforge.dtb is set in conf/machine/glowforge.conf.)
