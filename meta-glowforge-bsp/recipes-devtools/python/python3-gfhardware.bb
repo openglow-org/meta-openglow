@@ -19,3 +19,12 @@ DEPENDS += "libv4l libjpeg-turbo"
 # gfhardware.cam configures the imx-media capture pipeline at runtime by
 # shelling out to media-ctl (links/pad formats) and v4l2-ctl (sensor controls).
 RDEPENDS:${PN} += "media-ctl v4l-utils"
+# The standard-library packages the modules import.
+RDEPENDS:${PN} += " \
+    python3-core \
+    python3-fcntl \
+    python3-json \
+    python3-logging \
+    python3-netclient \
+    python3-threading \
+"

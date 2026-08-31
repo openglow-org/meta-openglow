@@ -15,3 +15,12 @@ RDEPENDS:${PN} += "\
     ${PYTHON_PN}-urllib3 \
     ${PYTHON_PN}-websocket-client \
     "
+# The standard-library packages the modules import.
+RDEPENDS:${PN} += " \
+    ${PYTHON_PN}-core \
+    ${PYTHON_PN}-datetime \
+    ${PYTHON_PN}-io \
+    ${PYTHON_PN}-json \
+    ${PYTHON_PN}-logging \
+    ${PYTHON_PN}-threading \
+"
