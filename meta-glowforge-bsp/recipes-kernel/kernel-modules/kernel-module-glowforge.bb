@@ -2,7 +2,7 @@ DESCRIPTION = "Glowforge Kernel Module"
 # Source headers grant "version 2 ... or (at your option) any later version".
 LICENSE = "GPL-2.0-or-later"
 
-SRC_URI = "git://github.com/ScottW514/kernel-module-glowforge.git;protocol=https;branch=master"
+SRC_URI = "git://github.com/openglow-org/kernel-module-glowforge.git;protocol=https;branch=master"
 # SRCREV and PV live in the pin file (ForgeFIRM image manifest: *-pin.inc is
 # left out of the layer content hash, the component entry identifies the
 # source).
