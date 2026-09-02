@@ -316,8 +316,7 @@ static int epit_probe(struct platform_device *pdev)
 
 	/* Create SYSFS entry for debugging purposes */
 	if (device_create_file(&pdev->dev, &dev_attr_status))
-		dev_warn(&pdev->dev, "epit: no status attribute
-");
+		dev_warn(&pdev->dev, "epit: no status attribute\n");
 
 	return 0;
 }
