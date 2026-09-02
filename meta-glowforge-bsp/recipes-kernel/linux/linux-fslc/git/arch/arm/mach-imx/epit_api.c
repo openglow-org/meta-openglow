@@ -226,6 +226,9 @@ struct epit *epit_get(struct device_node *np)
 	struct epit *epit = NULL;
 	if (!pdev) { return NULL; }
 	epit = platform_get_drvdata(pdev);
+	/* The lookup took a device reference; the epit lives as long as its
+	 * driver stays bound, so the reference is not what keeps it alive. */
+	put_device(&pdev->dev);
 	return epit;
 }
 EXPORT_SYMBOL(epit_get);
@@ -312,7 +315,9 @@ static int epit_probe(struct platform_device *pdev)
 		epit->irq, epit->rate, epit->sdma_event);
 
 	/* Create SYSFS entry for debugging purposes */
-	device_create_file(&pdev->dev, &dev_attr_status);
+	if (device_create_file(&pdev->dev, &dev_attr_status))
+		dev_warn(&pdev->dev, "epit: no status attribute
+");
 
 	return 0;
 }
