@@ -12,7 +12,6 @@ IMAGE_INSTALL = " \
 	curl \
 	e2fsprogs \
 	e2fsprogs-resize2fs \
-	gfui-client \
 	glibc-utils \
 	i2c-tools \
 	localedef \
@@ -45,8 +44,11 @@ create_dirs() {
 }
 IMAGE_PREPROCESS_COMMAND += "create_dirs; "
 
+# The factory bootloader looks for imx6dl-glowforge-v<major><minor>.dtb and
+# then -v<major>.dtb from the board-revision fuse; both names resolve.
 link_device_tree() {
 	cd ${IMAGE_ROOTFS}/boot
 	ln -sf glowforge.dtb imx6dl-glowforge-v20.dtb
+	ln -sf glowforge.dtb imx6dl-glowforge-v2.dtb
 }
 ROOTFS_POSTPROCESS_COMMAND += "link_device_tree; "

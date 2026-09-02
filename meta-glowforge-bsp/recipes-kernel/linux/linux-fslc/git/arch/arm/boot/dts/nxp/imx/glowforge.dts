@@ -27,7 +27,7 @@
 	model = "Glowforge Control Board Core";
 	compatible = "glowforge,imx6dl-glowforge", "fsl,imx6dl";
 
-	/* An i.MX6 Solo is a DualLite with only one core. */
+	/* The Solo has one core: drop the second CPU node of the base include. */
 	cpus {
 		/delete-node/ cpu@1;
 	};
@@ -406,6 +406,8 @@
 	cam_mux: mux-controller {
 		compatible = "gpio-mux";
 		#mux-control-cells = <0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_cam_mux>;
 		mux-gpios = <&gpio7 10 GPIO_ACTIVE_HIGH>;
 	};
 
@@ -518,12 +520,12 @@
 	};
 };
 
-/* Unused I2C Bus */
+/* No consumer. */
 &i2c2 {
 	clock-frequency = <100000>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c2>;
-	status = "okay";
+	status = "disabled";
 };
 
 /* Head I2C */
@@ -610,13 +612,6 @@
 			>;
 		};
 
-		pinctrl_uart2: glowforge_uart2 {
-			fsl,pins = <
-				MX6QDL_PAD_SD4_DAT7__UART2_TX_DATA UART_PAD_CTRL
-				MX6QDL_PAD_SD4_DAT4__UART2_RX_DATA UART_PAD_CTRL
-			>;
-		};
-
 		pinctrl_ecspi2: glowforge_ecspi2 {
 			fsl,pins = <
 				MX6QDL_PAD_EIM_OE__ECSPI2_MISO      SPI_PAD_CTRL
@@ -696,6 +691,12 @@
 			fsl,pins = <
 				MX6QDL_PAD_EIM_D21__I2C1_SCL   I2C_PAD_CTRL	/* SION enabled */
 				MX6QDL_PAD_EIM_D28__I2C1_SDA   I2C_PAD_CTRL	/* SION enabled */
+			>;
+		};
+
+		/* The camera-select line is muxed by the node that drives it. */
+		pinctrl_cam_mux: glowforge_cam_mux {
+			fsl,pins = <
 				MX6QDL_PAD_SD4_CLK__GPIO7_IO10 WEAK_PULLUP	/* CAM_SEL */
 			>;
 		};
@@ -822,10 +823,10 @@
 	status = "okay";
 };
 
+/* No consumer. Left disabled so the pulse ring stays the SDMA's only
+ * client: the imx serial driver would take two SDMA channels. */
 &uart2 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart2>;
-	status = "okay";
+	status = "disabled";
 };
 
 /* WL1805 */

@@ -7,8 +7,8 @@ BBCLASSEXTEND = "native nativesdk"
 
 # gfutilities 0.9.1 install_requires: requests, urllib3, websocket-client.
 # (0.9.1 replaced the old lomond websocket lib with websocket-client. gfutilities
-# eagerly imports its WSS service at package load, so anything importing it —
-# e.g. python3-gfhardware — fails with ModuleNotFoundError: 'websocket' unless
+# eagerly imports its WSS service at package load, so anything importing it  - 
+# e.g. python3-gfhardware - fails with ModuleNotFoundError: 'websocket' unless
 # websocket-client is installed.)
 RDEPENDS:${PN} += "\
     ${PYTHON_PN}-requests \
