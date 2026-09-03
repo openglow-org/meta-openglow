@@ -10,9 +10,11 @@ controller clocks the response out too early and the driver reads back 0x0000
 
 The factory provided this with the ECSPI PERIODREG sample-period register, which
 mainline spi-imx never gained (it has no PERIODREG / word_delay support). This
-restores it, sourced from spi_transfer.delay (which the PIC driver already sets),
-and forces fixed per-word bursts when a delay is requested so the wait-states
-land between words instead of inside a combined dynamic burst.
+restores it, sourced from spi_transfer.word_delay (the field the SPI core
+defines for an inter-word delay, which the PIC driver sets; the core's own
+spi_transfer.delay keeps its meaning, the gap after the transfer), and forces
+fixed per-word bursts when a delay is requested so the wait-states land
+between words instead of inside a combined dynamic burst.
 
 Scoped to MACHINE=glowforge via the linux-fslc bbappend; only ecspi2 (the PIC)
 is used on this board, so the global driver behavior change is inert elsewhere.
@@ -74,17 +76,19 @@ Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
  	mx51_configure_cpha(spi_imx, spi);
  
  	/*
-@@ -1262,12 +1293,28 @@
+@@ -1262,12 +1293,30 @@
  	spi_imx->count = t->len;
  
  	/*
 +	 * ForgeFIRM: capture the inter-word delay requested by this transfer
-+	 * (the sensor PIC sets spi_transfer.delay) for the PERIODREG sample-period
-+	 * programmed in prepare_transfer. spi_delay_to_ns() returns <0 for units
-+	 * that need a not-yet-known speed; treat those as "no delay".
++	 * (spi_transfer.word_delay, which the sensor PIC sets; the SPI core
++	 * raises it to the device's own word_delay when that is longer) for
++	 * the PERIODREG sample-period programmed in prepare_transfer.
++	 * spi_delay_to_ns() returns <0 for units that need a not-yet-known
++	 * speed; treat those as "no delay".
 +	 */
 +	{
-+		s32 ns = spi_delay_to_ns(&t->delay, t);
++		s32 ns = spi_delay_to_ns(&t->word_delay, t);
 +
 +		spi_imx->word_delay_us = (ns > 0) ? DIV_ROUND_UP(ns, 1000) : 0;
 +	}

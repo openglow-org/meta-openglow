@@ -2,7 +2,9 @@ imx-sdma: expose Glowforge cnc step-stream API
 
 ForgeFIRM motion path. Exposes the channel-0 bootload path,
 external-event ownership, priority and a custom per-channel interrupt
-callback used by glowforge.ko. The struct/prototype contract lives in
+callback used by glowforge.ko. The channel it hands out is claimed
+through dmaengine, so the allocator never gives the same channel to a
+peripheral. The struct/prototype contract lives in
 include/linux/platform_data/dma-imx-sdma.h.
 
 Upstream-Status: Inappropriate [embedded specific]
@@ -100,7 +102,7 @@ Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
  
  	ret = dma_async_device_register(&sdma->dma_device);
  	if (ret) {
-@@ -2444,6 +2452,268 @@
+@@ -2444,6 +2452,274 @@
  	.probe		= sdma_probe,
  };
  
@@ -135,33 +137,29 @@ Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
 +}
 +EXPORT_SYMBOL(sdma_engine_get);
 +
-+/* A channel taken here is driven outside dmaengine's allocator, so it must
-+ * hold the engine's ipg/ahb clocks the way sdma_alloc_chan_resources() does
-+ * for a dmaengine client: probe leaves them disabled, and with the block
-+ * gated every channel-0 transfer (script load, context load and fetch)
-+ * completes at once and moves nothing. Released by sdma_put_channel(). */
++/* A channel taken here is driven by the caller, not by a dmaengine
++ * transfer, but it is claimed through dmaengine all the same: the claim
++ * keeps the allocator from handing the same channel to a peripheral, and
++ * sdma_alloc_chan_resources() holds the engine's ipg/ahb clocks for it
++ * (probe leaves them disabled, and with the block gated every channel-0
++ * transfer, script load, context load and fetch, completes at once and
++ * moves nothing). Released by sdma_put_channel(). */
 +struct sdma_channel *sdma_get_channel(struct sdma_engine *sdma, int channel)
 +{
-+	int ret;
++	struct sdma_channel *sdmac;
 +
 +	if (channel < 0 || channel >= MAX_DMA_CHANNELS)
 +		return NULL;
-+	ret = clk_enable(sdma->clk_ipg);
-+	if (ret)
++	sdmac = &sdma->channel[channel];
++	if (!dma_get_slave_channel(&sdmac->vc.chan))
 +		return NULL;
-+	ret = clk_enable(sdma->clk_ahb);
-+	if (ret) {
-+		clk_disable(sdma->clk_ipg);
-+		return NULL;
-+	}
-+	return &sdma->channel[channel];
++	return sdmac;
 +}
 +EXPORT_SYMBOL(sdma_get_channel);
 +
 +void sdma_put_channel(struct sdma_channel *sdmac)
 +{
-+	clk_disable(sdmac->sdma->clk_ahb);
-+	clk_disable(sdmac->sdma->clk_ipg);
++	dma_release_channel(&sdmac->vc.chan);
 +}
 +EXPORT_SYMBOL(sdma_put_channel);
 +
@@ -295,20 +293,30 @@ Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
 +		sdmac->cb.callback(sdmac->cb.callback_param);
 +}
 +
++/* Setting a callback initializes the tasklet before the interrupt handler
++ * can schedule it; clearing one unhooks the handler first, then waits for
++ * a run already scheduled to finish, so the caller may free what the
++ * callback used once this returns. */
 +void sdma_set_channel_interrupt_callback(struct sdma_channel *sdmac,
 +		dma_async_tx_callback int_cb, void *cb_param)
 +{
 +	unsigned long flags;
 +
-+	spin_lock_irqsave(&sdmac->vc.lock, flags);
-+	if (int_cb)
-+		sdmac->flags |= IMX_DMA_CUSTOM_CALLBACK;
-+	else
++	if (!int_cb) {
++		spin_lock_irqsave(&sdmac->vc.lock, flags);
 +		sdmac->flags &= ~IMX_DMA_CUSTOM_CALLBACK;
-+	sdmac->cb.callback = int_cb;
-+	sdmac->cb.callback_param = cb_param;
++		sdmac->cb.callback = NULL;
++		sdmac->cb.callback_param = NULL;
++		spin_unlock_irqrestore(&sdmac->vc.lock, flags);
++		tasklet_kill(&sdmac->cb_task);
++		return;
++	}
 +	tasklet_init(&sdmac->cb_task, sdma_custom_callback_tasklet,
 +			(unsigned long)sdmac);
++	spin_lock_irqsave(&sdmac->vc.lock, flags);
++	sdmac->cb.callback = int_cb;
++	sdmac->cb.callback_param = cb_param;
++	sdmac->flags |= IMX_DMA_CUSTOM_CALLBACK;
 +	spin_unlock_irqrestore(&sdmac->vc.lock, flags);
 +}
 +EXPORT_SYMBOL(sdma_set_channel_interrupt_callback);
