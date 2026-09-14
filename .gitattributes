@@ -1,0 +1,4 @@
+# Every text file is stored and checked out with LF; a patch keeps its bytes.
+* text=auto eol=lf
+*.patch -text
+*.diff -text
