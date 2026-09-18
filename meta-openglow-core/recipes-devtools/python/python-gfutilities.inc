@@ -1,7 +1,7 @@
 SUMMARY = "A small collection of utilities to aid in firmware development for the Glowforge laser cutter."
 
 LICENSE = "MIT"
-LIC_FILES_CHKSUM = "file://LICENSE;md5=26acf3c796ca3fbbf3a264522a4a9065"
+LIC_FILES_CHKSUM = "file://LICENSE;md5=4976186b55408b879d12563574c62e85"
 
 BBCLASSEXTEND = "native nativesdk"
 
