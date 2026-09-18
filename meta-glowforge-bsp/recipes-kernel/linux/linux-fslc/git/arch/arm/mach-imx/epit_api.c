@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 /**
  * Low-level i.MX6 EPIT API.
  * Copyright 2018-2026 514 LLC d/b/a OpenGlow

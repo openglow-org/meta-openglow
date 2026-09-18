@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /**
  * Low-level i.MX6 EPIT API.
  * Copyright (C) 2015-2018 Glowforge, Inc. <opensource@glowforge.com>
