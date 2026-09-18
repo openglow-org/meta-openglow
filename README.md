@@ -22,4 +22,6 @@ fragment and the reserved memory pool are on
 project: safety ordering, proof before done, the push order, and the writing
 rules. They apply to human contributors too.
 
-This project is for experimental purposes only, and is not supported or endorsed by Glowforge.
+This project is for experimental purposes only. Glowforge is a trademark of
+Glowforge, Inc.; this project is not affiliated with, authorized by, or
+endorsed by Glowforge, Inc.
