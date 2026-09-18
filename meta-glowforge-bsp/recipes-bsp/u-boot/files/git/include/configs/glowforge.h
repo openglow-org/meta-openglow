@@ -7,6 +7,15 @@
  * All peripherals other than the serial port (video, ethernet, USB, I2C, etc.) are disabled.
  * Serial console available on UART1.
  *
+ * ForgeFIRM: ported from the factory U-Boot to 2020.01 by
+ * Copyright 2026 514 LLC d/b/a OpenGlow
+ * Written by Scott Wiederhold
+ * The changes are the CONFIG_ -> GF_ renames for the settings 2020.01 now
+ * owns as Kconfig symbols (the legacy #defines are dead there and collide),
+ * moving the environment organization to configs/glowforge_defconfig, always
+ * booting eMMC rather than selecting SD or eMMC at build time, and a boot
+ * delay of 3 s so the console is reachable.
+ *
  * SPDX-License-Identifier:  GPL-2.0+
  */
 

@@ -1,3 +1,14 @@
+# Copyright (C) 2015-2018 Glowforge, Inc.
+#
+# ForgeFIRM: ported from the factory U-Boot to 2020.01 by
+# Copyright 2026 514 LLC d/b/a OpenGlow
+# Written by Scott Wiederhold
+# The changes are the explicit CONFIG_ARCH_MX6, the environment settings
+# 2020.01 takes as Kconfig symbols rather than #defines, the explicit
+# CONFIG_SYS_TEXT_BASE, and dropping EMMC from CONFIG_SYS_EXTRA_OPTIONS.
+#
+# SPDX-License-Identifier: GPL-2.0+
+
 CONFIG_ARM=y
 CONFIG_ARCH_MX6=y
 CONFIG_TARGET_GLOWFORGE=y

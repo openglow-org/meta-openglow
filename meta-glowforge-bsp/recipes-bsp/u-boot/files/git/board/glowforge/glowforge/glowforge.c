@@ -1,6 +1,15 @@
 /*
  * Copyright (C) 2015-2018 Glowforge, Inc.
  *
+ * ForgeFIRM: ported from the factory U-Boot to 2020.01 by
+ * Copyright 2026 514 LLC d/b/a OpenGlow
+ * Written by Scott Wiederhold
+ * The changes are the renamed environment and block-device helpers
+ * (setenv/getenv -> env_set/env_get, get_device_and_partition ->
+ * blk_get_device_part_str, saveenv -> env_save), the asm/imx-common ->
+ * asm/mach-imx header move, and the fuse field rename mac_addr_low ->
+ * mac_addr0. The board logic itself is unchanged.
+ *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 

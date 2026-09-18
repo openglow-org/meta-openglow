@@ -7,11 +7,42 @@ through dmaengine, so the allocator never gives the same channel to a
 peripheral. The struct/prototype contract lives in
 include/linux/platform_data/dma-imx-sdma.h.
 
+Provenance: this is Glowforge's work, not an independent implementation.
+The exposed API and the bodies of sdma_channel_context_base, sdma_engine_get,
+sdma_get_channel, sdma_write_datamem, sdma_fetch_datamem,
+sdma_fetch_partial_context, sdma_load_partial_context, sdma_setup_channel,
+sdma_set_channel_interrupt_callback and sdma_print_context come from
+drivers/dma/imx-sdma.c in Glowforge/linux-glowforge (branch glowforge), whose
+own header scopes them as "Modifications to expose functionality to modules
+are copyright (C) 2015-2018 Glowforge, Inc.". They are carried over here
+rather than rewritten, because glowforge.ko links against this API by name.
+
+Adapted for 6.12: the driver moved to virt-dma, so sdma_disable_channel()
+takes a dma_chan and the per-channel custom callback runs off a tasklet hung
+on struct sdma_channel; sdma_put_channel() is new here and has no counterpart
+in the Glowforge tree. The five functions this patch only un-statics
+(sdma_config_ownership, sdma_load_script, sdma_event_enable,
+sdma_event_disable, sdma_set_channel_priority) are upstream Freescale/
+Pengutronix code whose bodies are untouched.
+
 Upstream-Status: Inappropriate [embedded specific]
 Signed-off-by: Scott Wiederhold <s.e.wiederhold@gmail.com>
 
 --- a/drivers/dma/imx-sdma.c
 +++ b/drivers/dma/imx-sdma.c
+@@ -9,6 +9,12 @@
+ // Based on code from Freescale:
+ //
+ // Copyright 2004-2009 Freescale Semiconductor, Inc. All Rights Reserved.
++//
++// Modifications to expose functionality to modules are
++// copyright (C) 2015-2018 Glowforge, Inc. <opensource@glowforge.com>
++//
++// Those modifications re-derived against 6.12 and extended:
++// Copyright 2026 514 LLC d/b/a OpenGlow
+ 
+ #include <linux/init.h>
+ #include <linux/iopoll.h>
 @@ -446,6 +446,8 @@
  struct sdma_channel {
  	struct virt_dma_chan		vc;
