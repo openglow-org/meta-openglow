@@ -21,9 +21,8 @@ iface wlan0 inet dhcp
 	# shell, so the substitution reads the name of the moment.
 	udhcpc_opts -x hostname:$(hostname)
 
-# IPv6 on the same link: the kernel takes the router advertisement (prefix
-# routes, default route, SLAAC addresses) on its own; udhcpc6 adds the
-# address a stateful DHCPv6 server assigns, applied by its hook script.
-iface wlan0 inet6 manual
-	up udhcpc6 -i wlan0 -b -S -p /run/udhcpc6.wlan0.pid
-	down [ -f /run/udhcpc6.wlan0.pid ] && kill $(cat /run/udhcpc6.wlan0.pid) || true
+# IPv6 on the same link needs no stanza: the kernel takes the router
+# advertisement (prefix routes, default route, SLAAC addresses) on its own.
+# No DHCPv6 client runs. Nothing started from this file may wait on a
+# server without a bound: init starts the rest of the boot, the console
+# login included, only after ifup returns.
