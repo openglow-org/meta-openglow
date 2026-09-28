@@ -24,8 +24,12 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 # oscillator runs at, and 0013 the 2-lane RAW8 modes that put full resolution
 # inside this SoC's 1 Gbps/lane CSI-2 receiver), and the spi-imx quiet
 # fallback to PIO when a controller describes no DMA channels (0014; the PIC's
-# ecspi2 has none on purpose), and wlcore asking for its optional NVS file
-# without a loader warning (0015; the rootfs ships none, the MAC is fused).
+# ecspi2 has none on purpose), wlcore asking for its optional NVS file
+# without a loader warning (0015; the rootfs ships none, the MAC is fused),
+# and kernel TLS keeping each record it sends in cache lines of its own
+# (0016; the CAAM writes AES-GCM ciphertext by DMA without snooping the
+# caches, and a line shared with the next record would lose the
+# ciphertext's last bytes).
 # The factory audio buzzer driver is not part of ForgeFIRM.
 SRC_URI:append:glowforge = " \
     file://glowforge.cfg \
@@ -45,6 +49,7 @@ SRC_URI:append:glowforge = " \
     file://0013-media-ov8856-2-lane-raw8-modes.patch \
     file://0014-spi-imx-no-dma-described-is-not-an-error.patch \
     file://0015-wlcore-nvs-is-optional-request-it-without-a-warning.patch \
+    file://0016-net-tls-keep-each-tx-record-in-cache-lines-of-its-own.patch \
 "
 
 # Debug kernel (item: debug-kernel checks). The lock-correctness fragment
