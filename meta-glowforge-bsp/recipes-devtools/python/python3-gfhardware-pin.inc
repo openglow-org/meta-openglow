@@ -3,4 +3,4 @@
 # out of the layer content hash because the component entry already
 # identifies the pinned source. The forgefirm-app recipes in meta-forgefirm
 # pin the same repository; move both together.
-SRCREV = "0f59c547b6e8418712ab9e000c58eb1975c29d79"
+SRCREV = "6fb146a13c51765eec492bf758946e573ae25297"
