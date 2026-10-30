@@ -2,7 +2,9 @@
 # long-description:
 # One ext4 root partition, written to an SD card with dd. It carries no
 # bootloader: the factory U-Boot in the eMMC boot area boots it when the
-# saved environment selects the SD card (ffboot sd).
-part / --source rootfs --ondisk mmcblk --fstype=ext4 --label root --active --align 4096
+# saved environment selects the SD card (ffboot sd). The filesystem options
+# are those of the image's raw ext4 for an eMMC slot (forgefirm-image.bb in
+# meta-forgefirm), so a bench boot from the card reads the slot's format.
+part / --source rootfs --ondisk mmcblk --fstype=ext4 --label root --active --align 4096 --mkfs-extraopts "-F -i 8192 -m 0"
 
 bootloader --ptable msdos
