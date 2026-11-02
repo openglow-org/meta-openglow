@@ -2,10 +2,14 @@
 # The root filesystem (the booted slot: eMMC p1 or p2, or the SD card on
 # the bench) mounts read-only; the images set ROOTFS_READ_ONLY to match
 # (the read-only-rootfs image feature). /data (p3) is the one writable
-# partition: the machine state, the logs, the staged updates. The dev
-# image appends the two factory slots, read-only under /factory/img1 and
-# /factory/img2 (forgefirm-image-dev.bb); the release image mounts no
-# factory slot. Facts: docs.forgefirm.org, technical/forgefirm/image-and-bsp.
+# partition this file mounts: the machine state, the logs, the staged
+# updates. A boot from the dev image's SD card adds the card's data
+# partition, which holds ForgeFIRM's settings and logs in place of the
+# eMMC's; the boot step forgefirm-data (the forgefirm layer) mounts it,
+# not this file. The dev image appends the two factory slots, read-only
+# under /factory/img1 and /factory/img2 (forgefirm-image-dev.bb); the
+# release image mounts no factory slot. Facts: docs.forgefirm.org,
+# technical/forgefirm/image-and-bsp.
 /dev/root            /                    auto       ro                    1  0
 proc                 /proc                proc       defaults              0  0
 devpts               /dev/pts             devpts     mode=0620,ptmxmode=0666,gid=5 0  0
